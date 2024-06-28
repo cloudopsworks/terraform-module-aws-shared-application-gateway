@@ -4,12 +4,6 @@
 #            Distributed Under Apache v2.0 License
 #
 
-# Establish this is a HUB or spoke configuration
-variable "is_hub" {
-  type    = bool
-  default = false
-}
-
 variable "spoke_def" {
   type    = string
   default = "001"

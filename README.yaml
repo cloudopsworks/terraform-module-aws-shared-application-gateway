@@ -1,4 +1,4 @@
-name: Terraform Transit Gateway Module
+name: Terraform Shared/Central Application Gateway Module
 #logo: logo/logo.jpg
 
 license: "APACHE2"
