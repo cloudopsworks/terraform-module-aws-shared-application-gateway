@@ -12,5 +12,14 @@ variable "access_logs" {
     logs_retention_years = optional(number, 3)
     logs_archive_days    = optional(number, 30)
   }))
+  default = {
+    access_logs = {
+      enabled              = false
+      bucket               = ""
+      prefix               = ""
+      logs_retention_years = 3
+      logs_archive_days    = 30
+    }
+  }
   description = "(required) Access logs configuration."
 }
