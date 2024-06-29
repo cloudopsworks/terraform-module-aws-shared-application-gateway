@@ -16,7 +16,7 @@ locals {
 }
 # ALB resource
 resource "aws_lb" "this" {
-  name                       = format("alb-%s", local.system_name)
+  name                       = format("alb-%s", local.system_name_short)
   internal                   = var.is_internal
   load_balancer_type         = "application"
   security_groups            = [aws_security_group.this.id]
