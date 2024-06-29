@@ -4,6 +4,16 @@
 #            Distributed Under Apache v2.0 License
 #
 
+locals {
+  access_logs = var.access_logs.enabled ? [
+    {
+      bucket               = var.access_logs.bucket_name
+      prefix               = var.access_logs.logs_prefix
+      logs_retention_years = var.access_logs.logs_retention_years
+      logs_archive_days    = var.access_logs.logs_archive_days
+    }
+  ] : []
+}
 # ALB resource
 resource "aws_lb" "this" {
   name                       = format("alb-%s", local.system_name)
@@ -17,7 +27,7 @@ resource "aws_lb" "this" {
   enable_deletion_protection = var.delete_protection
 
   dynamic "access_logs" {
-    for_each = var.access_logs
+    for_each = local.access_logs
     content {
       enabled = access_logs.value.enabled
       bucket  = access_logs.value.bucket
