@@ -8,7 +8,7 @@ variable "access_logs" {
   type = map(object({
     enabled              = bool
     bucket               = string
-    prefix               = optional(string, "")
+    logs_prefix          = optional(string, "")
     logs_retention_years = optional(number, 3)
     logs_archive_days    = optional(number, 30)
   }))
@@ -16,7 +16,7 @@ variable "access_logs" {
     access_logs = {
       enabled              = false
       bucket               = ""
-      prefix               = ""
+      logs_prefix          = ""
       logs_retention_years = 3
       logs_archive_days    = 30
     }
