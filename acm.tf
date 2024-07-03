@@ -3,7 +3,9 @@
 #            On GitHub: https://github.com/cloudopsworks
 #            Distributed Under Apache v2.0 License
 #
-
+locals {
+  dvos = var.default_ssl.enabled ? aws_acm_certificate.default_cert[0].domain_validation_options : []
+}
 resource "aws_acm_certificate" "default_cert" {
   count                     = var.default_ssl.enabled ? 1 : 0
   domain_name               = var.default_ssl.cn
@@ -24,11 +26,11 @@ resource "aws_acm_certificate" "default_cert" {
 
 resource "aws_route53_record" "default_cert" {
   for_each = {
-    for dvo in aws_acm_certificate.default_cert[0].domain_validation_options : dvo.domain_name => {
+    for dvo in local.dvos : dvo.domain_name => {
       name  = dvo.resource_record_name
       value = dvo.resource_record_value
       type  = dvo.resource_record_type
-    } if endswith(dvo.domain_name, var.default_ssl.validation_domain) && var.default_ssl.enabled && var.default_ssl.auto_validation && var.default_ssl.validation_method == "DNS"
+    } if endswith(dvo.domain_name, var.default_ssl.validation_domain) && var.default_ssl.auto_validation && var.default_ssl.validation_method == "DNS"
   }
   allow_overwrite = true
   name            = each.value.name
