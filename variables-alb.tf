@@ -38,3 +38,8 @@ variable "ssl_policy" {
   type    = string
   default = "ELBSecurityPolicy-TLS-1-2-2017-01"
 }
+
+variable "cross_zone_load_balancing" {
+  type    = bool
+  default = true
+}

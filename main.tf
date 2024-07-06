@@ -16,15 +16,16 @@ locals {
 }
 # ALB resource
 resource "aws_lb" "this" {
-  name                       = format("alb-%s", local.system_name_short)
-  internal                   = var.is_internal
-  load_balancer_type         = "application"
-  security_groups            = [aws_security_group.this.id]
-  subnets                    = var.is_internal ? var.private_subnet_ids : var.public_subnet_ids
-  ip_address_type            = var.ip_address_type
-  preserve_host_header       = true
-  xff_header_processing_mode = "append"
-  enable_deletion_protection = var.delete_protection
+  name                             = format("alb-%s", local.system_name_short)
+  internal                         = var.is_internal
+  load_balancer_type               = "application"
+  security_groups                  = [aws_security_group.this.id]
+  subnets                          = var.is_internal ? var.private_subnet_ids : var.public_subnet_ids
+  ip_address_type                  = var.ip_address_type
+  preserve_host_header             = true
+  xff_header_processing_mode       = "append"
+  enable_deletion_protection       = var.delete_protection
+  enable_cross_zone_load_balancing = var.cross_zone_load_balancing
 
   dynamic "access_logs" {
     for_each = local.access_logs
