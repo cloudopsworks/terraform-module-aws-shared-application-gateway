@@ -67,7 +67,7 @@ resource "aws_lb_listener" "this_http" {
   tags = merge(
     local.all_tags,
     {
-      Name = format("alb-http-%s", local.system_name)
+      Name = format("alb-%s-http", local.system_name_short)
     }
   )
 }
@@ -94,7 +94,21 @@ resource "aws_lb_listener" "this_https" {
   tags = merge(
     local.all_tags,
     {
-      Name = format("alb-https-%s", local.system_name)
+      Name = format("alb-%s-https", local.system_name_short)
     }
   )
 }
+
+# resource "aws_ec2_tag" "default_action_80" {
+#   for_each    = local.all_tags
+#   resource_id = aws_lb_listener.this_http.default_action[0].id
+#   key         = each.key
+#   value       = each.value
+# }
+#
+# resource "aws_ec2_tag" "default_action_443" {
+#   for_each    = local.all_tags
+#   resource_id = aws_lb_listener.this_https.default_action[0].id
+#   key         = each.key
+#   value       = each.value
+# }

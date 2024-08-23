@@ -6,7 +6,7 @@
 
 # Security groups for ALB
 resource "aws_security_group" "this" {
-  name        = "alb-sg-${local.system_name}"
+  name        = "alb-${local.system_name}-sg"
   description = "Shared/Central Load Balancer security group for ${local.system_name}"
   vpc_id      = var.vpc_id
 
