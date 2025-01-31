@@ -99,6 +99,37 @@ resource "aws_lb_listener" "this_https" {
   )
 }
 
+# Extra listeners
+resource "aws_lb_listener" "extra_https" {
+  for_each = {
+    for listener in var.extra_listeners : "port-${listener.port}" => listener
+  }
+  depends_on = [
+    aws_acm_certificate_validation.default_cert
+  ]
+  load_balancer_arn = aws_lb.this.arn
+  port              = each.value.port
+  protocol          = try(each.value.ssl, false) ? "HTTPS" : "HTTP"
+  ssl_policy        = try(each.value.ssl, false) ? var.ssl_policy : null
+  certificate_arn   = try(each.value.ssl, false) ? (var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn) : null
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "application/json"
+      message_body = "{\"error\": \"Not Allowed\"}"
+      status_code  = "401"
+    }
+  }
+  tags = merge(
+    local.all_tags,
+    {
+      Name = format("alb-%s-%s", local.system_name_short, try(each.value.ssl, false) ? "https" : "http")
+    }
+  )
+}
+
 # resource "aws_ec2_tag" "default_action_80" {
 #   for_each    = local.all_tags
 #   resource_id = aws_lb_listener.this_http.default_action[0].id

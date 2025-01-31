@@ -43,3 +43,8 @@ variable "cross_zone_load_balancing" {
   type    = bool
   default = true
 }
+
+variable "extra_listeners" {
+  type    = list(map(string))
+  default = []
+}
