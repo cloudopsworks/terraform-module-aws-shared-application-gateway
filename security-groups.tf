@@ -55,3 +55,16 @@ resource "aws_vpc_security_group_ingress_rule" "sg_443" {
   description       = "Allow all inbound traffic on port 443"
   tags              = local.all_tags
 }
+
+resource "aws_vpc_security_group_ingress_rule" "sg_extra_https" {
+  for_each = {
+    for listener in var.extra_listeners : "port-${listener.port}" => listener
+  }
+  security_group_id = aws_security_group.this.id
+  ip_protocol       = "tcp"
+  from_port         = each.value.port
+  to_port           = each.value.port
+  cidr_ipv4         = "0.0.0.0/0"
+  description       = "Allow all inbound traffic on port ${each.value.port}"
+  tags              = local.all_tags
+}
