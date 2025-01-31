@@ -109,9 +109,9 @@ resource "aws_lb_listener" "extra_https" {
   ]
   load_balancer_arn = aws_lb.this.arn
   port              = each.value.port
-  protocol          = "HTTPS"
-  ssl_policy        = var.ssl_policy
-  certificate_arn   = var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn
+  protocol          = try(each.value.ssl, false) ? "HTTPS" : "HTTP"
+  ssl_policy        = try(each.value.ssl, false) ? var.ssl_policy : null
+  certificate_arn   = try(each.value.ssl, false) ? (var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn) : null
 
   default_action {
     type = "fixed-response"
@@ -125,7 +125,7 @@ resource "aws_lb_listener" "extra_https" {
   tags = merge(
     local.all_tags,
     {
-      Name = format("alb-%s-https", local.system_name_short)
+      Name = format("alb-%s-%s", local.system_name_short, try(each.value.ssl, false) ? "https" : "http")
     }
   )
 }
