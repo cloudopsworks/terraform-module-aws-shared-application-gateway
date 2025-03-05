@@ -26,6 +26,15 @@ resource "aws_lb" "this" {
     }
   }
 
+  dynamic "connection_logs" {
+    for_each = var.access_logs.enabled ? [1] : []
+    content {
+      enabled = var.access_logs.enabled
+      bucket  = var.access_logs.bucket_name
+      prefix  = var.access_logs.logs_prefix
+    }
+  }
+
   tags = merge(
     local.all_tags,
     {
