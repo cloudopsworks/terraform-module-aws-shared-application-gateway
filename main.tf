@@ -52,9 +52,10 @@ resource "aws_lb" "this" {
 
 # Listeners
 resource "aws_lb_listener" "this_http" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = 80
-  protocol          = "HTTP"
+  load_balancer_arn                    = aws_lb.this.arn
+  port                                 = 80
+  protocol                             = "HTTP"
+  routing_http_response_server_enabled = var.server_header_enabled
 
   default_action {
     type = "redirect"
@@ -76,11 +77,12 @@ resource "aws_lb_listener" "this_https" {
   depends_on = [
     aws_acm_certificate_validation.default_cert
   ]
-  load_balancer_arn = aws_lb.this.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = var.ssl_policy
-  certificate_arn   = var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn
+  load_balancer_arn                    = aws_lb.this.arn
+  port                                 = 443
+  protocol                             = "HTTPS"
+  ssl_policy                           = var.ssl_policy
+  certificate_arn                      = var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn
+  routing_http_response_server_enabled = var.server_header_enabled
 
   default_action {
     type = "fixed-response"
@@ -107,11 +109,12 @@ resource "aws_lb_listener" "extra_https" {
   depends_on = [
     aws_acm_certificate_validation.default_cert
   ]
-  load_balancer_arn = aws_lb.this.arn
-  port              = each.value.port
-  protocol          = try(each.value.ssl, false) ? "HTTPS" : "HTTP"
-  ssl_policy        = try(each.value.ssl, false) ? var.ssl_policy : null
-  certificate_arn   = try(each.value.ssl, false) ? (var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn) : null
+  load_balancer_arn                    = aws_lb.this.arn
+  port                                 = each.value.port
+  protocol                             = try(each.value.ssl, false) ? "HTTPS" : "HTTP"
+  ssl_policy                           = try(each.value.ssl, false) ? var.ssl_policy : null
+  certificate_arn                      = try(each.value.ssl, false) ? (var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn) : null
+  routing_http_response_server_enabled = var.server_header_enabled
 
   default_action {
     type = "fixed-response"

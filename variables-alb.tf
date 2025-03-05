@@ -48,3 +48,8 @@ variable "extra_listeners" {
   type    = list(map(string))
   default = []
 }
+
+variable "server_header_enabled" {
+  type    = bool
+  default = false
+}
