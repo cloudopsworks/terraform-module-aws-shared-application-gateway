@@ -4,16 +4,6 @@
 #            Distributed Under Apache v2.0 License
 #
 
-locals {
-  access_logs = var.access_logs.enabled ? [
-    {
-      bucket               = var.access_logs.bucket_name
-      prefix               = var.access_logs.logs_prefix
-      logs_retention_years = var.access_logs.logs_retention_years
-      logs_archive_days    = var.access_logs.logs_archive_days
-    }
-  ] : []
-}
 # ALB resource
 resource "aws_lb" "this" {
   name                             = format("alb-%s", local.system_name_short)
@@ -28,11 +18,11 @@ resource "aws_lb" "this" {
   enable_cross_zone_load_balancing = var.cross_zone_load_balancing
 
   dynamic "access_logs" {
-    for_each = local.access_logs
+    for_each = var.access_logs.enabled ? [1] : []
     content {
-      enabled = access_logs.value.enabled
-      bucket  = access_logs.value.bucket
-      prefix  = access_logs.value.prefix
+      enabled = var.access_logs.enabled
+      bucket  = var.access_logs.bucket_name
+      prefix  = var.access_logs.logs_prefix
     }
   }
 
