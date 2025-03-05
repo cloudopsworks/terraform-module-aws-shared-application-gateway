@@ -22,7 +22,7 @@ resource "aws_lb" "this" {
     content {
       enabled = var.access_logs.enabled
       bucket  = var.access_logs.bucket_name
-      prefix  = var.access_logs.logs_prefix
+      prefix  = "${var.access_logs.logs_prefix}/access"
     }
   }
 
@@ -31,7 +31,7 @@ resource "aws_lb" "this" {
     content {
       enabled = var.access_logs.enabled
       bucket  = var.access_logs.bucket_name
-      prefix  = var.access_logs.logs_prefix
+      prefix  = "${var.access_logs.logs_prefix}/connections"
     }
   }
 
