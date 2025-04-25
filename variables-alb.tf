@@ -45,7 +45,7 @@ variable "cross_zone_load_balancing" {
 }
 
 variable "extra_listeners" {
-  type    = list(map(string))
+  type    = any
   default = []
 }
 
