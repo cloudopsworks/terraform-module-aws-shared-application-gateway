@@ -86,7 +86,7 @@ resource "aws_lb_listener" "this_https" {
     for_each = length(var.mutual_authentication) > 0 ? [1] : []
     content {
       mode                             = var.mutual_authentication.mode
-      trust_store_arn                  = var.mutual_authentication.trust_store_arn
+      trust_store_arn                  = try(var.mutual_authentication.trust_store_arn, null)
       ignore_client_certificate_expiry = try(var.mutual_authentication.client_cert_expiry, null)
     }
   }
@@ -125,7 +125,7 @@ resource "aws_lb_listener" "extra_https" {
     for_each = length(try(each.value.mutual_authentication, {})) > 0 ? [1] : []
     content {
       mode                             = each.value.mutual_authentication.mode
-      trust_store_arn                  = each.value.mutual_authentication.trust_store_arn
+      trust_store_arn                  = try(each.value.mutual_authentication.trust_store_arn, null)
       ignore_client_certificate_expiry = try(each.value.mutual_authentication.client_cert_expiry, null)
     }
   }
