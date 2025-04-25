@@ -53,3 +53,9 @@ variable "server_header_enabled" {
   type    = bool
   default = false
 }
+
+variable "mutual_authentication" {
+  description = "Enable mutual TLS authentication"
+  type        = any
+  default     = {}
+}

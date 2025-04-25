@@ -82,7 +82,14 @@ resource "aws_lb_listener" "this_https" {
   ssl_policy                           = var.ssl_policy
   certificate_arn                      = var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn
   routing_http_response_server_enabled = var.server_header_enabled
-
+  dynamic "mutual_authentication" {
+    for_each = length(var.mutual_authentication) > 0 ? [1] : []
+    content {
+      mode                             = var.mutual_authentication.mode
+      trust_store_arn                  = var.mutual_authentication.trust_store_arn
+      ignore_client_certificate_expiry = try(var.mutual_authentication.client_cert_expiry, null)
+    }
+  }
   default_action {
     type = "fixed-response"
 
@@ -114,7 +121,14 @@ resource "aws_lb_listener" "extra_https" {
   ssl_policy                           = try(each.value.ssl, false) ? var.ssl_policy : null
   certificate_arn                      = try(each.value.ssl, false) ? (var.acm_certificate_arn != "" ? var.acm_certificate_arn : aws_acm_certificate.default_cert[0].arn) : null
   routing_http_response_server_enabled = var.server_header_enabled
-
+  dynamic "mutual_authentication" {
+    for_each = length(try(each.value.mutual_authentication, {})) > 0 ? [1] : []
+    content {
+      mode                             = each.value.mutual_authentication.mode
+      trust_store_arn                  = each.value.mutual_authentication.trust_store_arn
+      ignore_client_certificate_expiry = try(each.value.mutual_authentication.client_cert_expiry, null)
+    }
+  }
   default_action {
     type = "fixed-response"
 
