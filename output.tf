@@ -4,6 +4,10 @@
 #            Distributed Under Apache v2.0 License
 #
 
+output "load_balancer_name" {
+  value = aws_lb.this.name
+}
+
 output "load_balancer_arn" {
   value = aws_lb.this.arn
 }
