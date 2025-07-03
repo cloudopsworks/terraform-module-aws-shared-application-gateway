@@ -12,8 +12,9 @@ variable "is_internal" {
 }
 
 variable "ip_address_type" {
-  type    = string
-  default = "ipv4"
+  type     = string
+  default  = "ipv4"
+  nullable = false
 }
 
 variable "delete_protection" {
@@ -27,13 +28,15 @@ variable "vpc_id" {
 }
 
 variable "private_subnet_ids" {
-  type    = list(string)
-  default = []
+  type     = list(string)
+  default  = []
+  nullable = false
 }
 
 variable "public_subnet_ids" {
-  type    = list(string)
-  default = []
+  type     = list(string)
+  default  = []
+  nullable = false
 }
 
 variable "ssl_policy" {
