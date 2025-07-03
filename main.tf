@@ -146,16 +146,33 @@ resource "aws_lb_listener" "extra_https" {
   )
 }
 
-# resource "aws_ec2_tag" "default_action_80" {
-#   for_each    = local.all_tags
-#   resource_id = aws_lb_listener.this_http.default_action[0].id
-#   key         = each.key
-#   value       = each.value
-# }
-#
-# resource "aws_ec2_tag" "default_action_443" {
-#   for_each    = local.all_tags
-#   resource_id = aws_lb_listener.this_https.default_action[0].id
-#   key         = each.key
-#   value       = each.value
-# }
+data "aws_network_interfaces" "this" {
+  filter {
+    name   = "requester-id"
+    values = ["amazon-elb"]
+  }
+  filter {
+    name   = "subnet-id"
+    values = coalescelist(var.private_subnet_ids, var.public_subnet_ids)
+  }
+  filter {
+    name   = "group-id"
+    values = [aws_security_group.this.id]
+  }
+  depends_on = [aws_lb.this]
+}
+
+resource "aws_ec2_tag" "lb_eni" {
+  for_each = merge([
+    for sub in range(coalescelist(var.private_subnet_ids, var.public_subnet_ids)) : {
+      for k, v in local.all_tags : "${sub}-${k}" => {
+        index     = sub
+        tag_key   = k
+        tag_value = v
+      }
+    }
+  ]...)
+  resource_id = data.aws_network_interfaces.this.ids[each.value.index]
+  key         = each.value.tag_key
+  value       = each.value.tag_value
+}

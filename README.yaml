@@ -8,23 +8,105 @@ copyrights:
     url: "https://cloudops.works"
     year: "2024"
 
-github_repo: cloudopsworks/terraform-module-aws-vpc-setup
+github_repo: cloudopsworks/terraform-module-aws-shared-application-gateway
 
 description: |-
-  VPC Module for setting up transit gateway with ResourceAccessMananger support.
+  AWS Application Load Balancer (ALB) Terraform module for setting up a shared/central application gateway with comprehensive features including multiple listeners, SSL/TLS termination, mutual TLS authentication, WAF integration, and dynamic target group routing. Supports both internal and external facing configurations with customizable security policies and access logging capabilities.
 
 # Introduction to the project
-#introduction: |-
-#  This is an introduction.
+introduction: |-
+  This Terraform module creates a centralized Application Load Balancer (ALB) with advanced features including:
+  - HTTP to HTTPS redirection with customizable rules
+  - Multiple SSL/TLS listeners with SNI support
+  - Mutual TLS authentication support with certificate validation
+  - Comprehensive access and connection logging with S3 integration
+  - Cross-zone load balancing for high availability
+  - Custom security groups with fine-grained access control
+  - IPv4/IPv6 dual-stack support
+  - Internal or Internet-facing deployment options
+  - WAF integration for enhanced security
+  - Dynamic target group routing based on path/host conditions
+  - Health check customization
+  - Sticky session support
+  - Custom SSL policies
 
 # How to use this project
-#usage: |-
+usage: |-
+  ## Terragrunt Configuration
+  ```hcl
+  # terragrunt.hcl
+  include "root" {
+    path = find_in_parent_folders()
+  }
+
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+  }
+
+  inputs = {
+    # Network Configuration
+    vpc_id             = "vpc-1234567890"
+    is_internal        = false
+    private_subnet_ids = ["subnet-1", "subnet-2"]
+    public_subnet_ids  = ["subnet-3", "subnet-4"]
+
+    # SSL/TLS Configuration
+    ssl_policy         = "ELBSecurityPolicy-TLS-1-2-2017-01"
+    certificate_arn    = "arn:aws:acm:region:account:certificate/certificate-id"
+
+    # Access Logs Configuration
+    access_logs = {
+      enabled     = true
+      bucket_name = "my-alb-logs"
+      logs_prefix = "alb-logs"
+    }
+
+    # Security Groups
+    security_groups = ["sg-12345678"]
+
+    # WAF Configuration
+    waf_acl_arn = "arn:aws:wafv2:region:account:regional/webacl/name/id"
+
+    # Listeners Configuration
+    listeners = {
+      http = {
+        port     = 80
+        protocol = "HTTP"
+        default_action = {
+          type = "redirect"
+          redirect = {
+            port        = "443"
+            protocol    = "HTTPS"
+            status_code = "HTTP_301"
+          }
+        }
+      }
+      https = {
+        port            = 443
+        protocol        = "HTTPS"
+        ssl_policy      = "ELBSecurityPolicy-TLS-1-2-2017-01"
+        certificate_arn = "arn:aws:acm:region:account:certificate/certificate-id"
+      }
+    }
+  }
+  ```
 
 # Example usage
-#examples: |-
+examples: |-
+  ### Basic External ALB
+  ```hcl
+  module "external_alb" {
+    source = "cloudopsworks/shared-application-gateway/aws"
 
-# How to get started quickly
-#quickstart: |-
+    vpc_id            = "vpc-1234567890"
+    public_subnet_ids = ["subnet-1", "subnet-2"]
+    is_internal       = false
+  }
+  ```
+
+  ### Internal ALB with mTLS
+  ```hcl
+  module "internal_alb" {
 
 include:
   - "docs/targets.md"
