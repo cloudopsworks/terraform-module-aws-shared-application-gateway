@@ -6,8 +6,9 @@
 
 # Defaults to external ALB
 variable "is_internal" {
-  type    = bool
-  default = false
+  type     = bool
+  default  = false
+  nullable = false
 }
 
 variable "ip_address_type" {
@@ -16,8 +17,9 @@ variable "ip_address_type" {
 }
 
 variable "delete_protection" {
-  type    = bool
-  default = true
+  type     = bool
+  default  = true
+  nullable = false
 }
 
 variable "vpc_id" {
@@ -35,27 +37,32 @@ variable "public_subnet_ids" {
 }
 
 variable "ssl_policy" {
-  type    = string
-  default = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  type     = string
+  default  = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  nullable = false
 }
 
 variable "cross_zone_load_balancing" {
-  type    = bool
-  default = true
+  type     = bool
+  default  = true
+  nullable = false
 }
 
 variable "extra_listeners" {
-  type    = any
-  default = []
+  type     = any
+  default  = []
+  nullable = false
 }
 
 variable "server_header_enabled" {
-  type    = bool
-  default = false
+  type     = bool
+  default  = false
+  nullable = false
 }
 
 variable "mutual_authentication" {
   description = "Enable mutual TLS authentication"
   type        = any
   default     = {}
+  nullable    = false
 }
