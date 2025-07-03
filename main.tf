@@ -153,7 +153,7 @@ data "aws_network_interfaces" "this" {
   }
   filter {
     name   = "subnet-id"
-    values = coalescelist(var.private_subnet_ids, var.public_subnet_ids)
+    values = coalesce(var.private_subnet_ids, var.public_subnet_ids)
   }
   filter {
     name   = "group-id"
@@ -164,7 +164,7 @@ data "aws_network_interfaces" "this" {
 
 resource "aws_ec2_tag" "lb_eni" {
   for_each = merge([
-    for sub in range(coalescelist(var.private_subnet_ids, var.public_subnet_ids)) : {
+    for sub in range(length(coalesce(var.private_subnet_ids, var.public_subnet_ids))) : {
       for k, v in local.all_tags : "${sub}-${k}" => {
         index     = sub
         tag_key   = k
