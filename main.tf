@@ -4,9 +4,13 @@
 #            Distributed Under Apache v2.0 License
 #
 
+locals {
+  lb_name = format("alb-%s", local.system_name_short)
+}
+
 # ALB resource
 resource "aws_lb" "this" {
-  name                             = format("alb-%s", local.system_name_short)
+  name                             = local.lb_name
   internal                         = var.is_internal
   load_balancer_type               = "application"
   security_groups                  = [aws_security_group.this.id]
@@ -165,7 +169,7 @@ data "aws_network_interfaces" "this" {
 resource "aws_ec2_tag" "lb_eni" {
   for_each = merge([
     for sub in range(length(coalescelist(var.private_subnet_ids, var.public_subnet_ids))) : {
-      for k, v in local.all_tags : "${sub}-${k}" => {
+      for k, v in merge(local.all_tags, { Name = local.lb_name }) : "${sub}-${k}" => {
         index     = sub
         tag_key   = k
         tag_value = v
