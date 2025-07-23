@@ -1,15 +1,31 @@
 ##
-# (c) 2024 - Cloud Ops Works LLC - https://cloudops.works/
-#            On GitHub: https://github.com/cloudopsworks
-#            Distributed Under Apache v2.0 License
+# (c) 2021-2025
+#     Cloud Ops Works LLC - https://cloudops.works/
+#     Find us on:
+#       GitHub: https://github.com/cloudopsworks
+#       WebSite: https://cloudops.works
+#     Distributed Under Apache v2.0 License
 #
 
+# Establish this is a HUB or spoke configuration
+variable "is_hub" {
+  description = "Is this a hub or spoke configuration?"
+  type        = bool
+  default     = false
+}
+
 variable "spoke_def" {
-  type    = string
-  default = "001"
+  description = "Spoke ID Number, must be a 3 digit number"
+  type        = string
+  default     = "001"
+  validation {
+    condition     = (length(var.spoke_def) == 3) && tonumber(var.spoke_def) != null
+    error_message = "The spoke_def must be a 3 digit number as string."
+  }
 }
 
 variable "org" {
+  description = "Organization details"
   type = object({
     organization_name = string
     organization_unit = string
@@ -19,6 +35,7 @@ variable "org" {
 }
 
 variable "extra_tags" {
-  type    = map(string)
-  default = {}
+  description = "Extra tags to add to the resources"
+  type        = map(string)
+  default     = {}
 }
