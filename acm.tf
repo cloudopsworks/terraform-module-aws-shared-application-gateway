@@ -1,11 +1,15 @@
 ##
-# (c) 2024 - Cloud Ops Works LLC - https://cloudops.works/
-#            On GitHub: https://github.com/cloudopsworks
-#            Distributed Under Apache v2.0 License
+# (c) 2021-2025
+#     Cloud Ops Works LLC - https://cloudops.works/
+#     Find us on:
+#       GitHub: https://github.com/cloudopsworks
+#       WebSite: https://cloudops.works
+#     Distributed Under Apache v2.0 License
 #
 locals {
   dvos = var.default_ssl.enabled ? aws_acm_certificate.default_cert[0].domain_validation_options : []
 }
+
 resource "aws_acm_certificate" "default_cert" {
   count                     = var.default_ssl.enabled ? 1 : 0
   domain_name               = var.default_ssl.cn

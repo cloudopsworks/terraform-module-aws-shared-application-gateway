@@ -48,15 +48,16 @@
 | <a name="input_default_ssl"></a> [default\_ssl](#input\_default\_ssl) | n/a | <pre>object({<br/>    enabled           = bool<br/>    cn                = string<br/>    san               = optional(list(string), [])<br/>    auto_validation   = optional(bool, false)<br/>    validation_method = optional(string, "DNS")<br/>    validation_domain = optional(string, "")<br/>    validation_email  = optional(string, "")<br/>  })</pre> | <pre>{<br/>  "auto_validation": false,<br/>  "cn": "",<br/>  "enabled": false,<br/>  "san": [],<br/>  "validation_domain": "example.com",<br/>  "validation_email": "",<br/>  "validation_method": "DNS"<br/>}</pre> | no |
 | <a name="input_delete_protection"></a> [delete\_protection](#input\_delete\_protection) | n/a | `bool` | `true` | no |
 | <a name="input_extra_listeners"></a> [extra\_listeners](#input\_extra\_listeners) | n/a | `any` | `[]` | no |
-| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | n/a | `map(string)` | `{}` | no |
+| <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Extra tags to add to the resources | `map(string)` | `{}` | no |
 | <a name="input_ip_address_type"></a> [ip\_address\_type](#input\_ip\_address\_type) | n/a | `string` | `"ipv4"` | no |
+| <a name="input_is_hub"></a> [is\_hub](#input\_is\_hub) | Is this a hub or spoke configuration? | `bool` | `false` | no |
 | <a name="input_is_internal"></a> [is\_internal](#input\_is\_internal) | Defaults to external ALB | `bool` | `false` | no |
 | <a name="input_mutual_authentication"></a> [mutual\_authentication](#input\_mutual\_authentication) | Enable mutual TLS authentication | `any` | `{}` | no |
-| <a name="input_org"></a> [org](#input\_org) | n/a | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
+| <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
 | <a name="input_private_subnet_ids"></a> [private\_subnet\_ids](#input\_private\_subnet\_ids) | n/a | `list(string)` | `[]` | no |
 | <a name="input_public_subnet_ids"></a> [public\_subnet\_ids](#input\_public\_subnet\_ids) | n/a | `list(string)` | `[]` | no |
 | <a name="input_server_header_enabled"></a> [server\_header\_enabled](#input\_server\_header\_enabled) | n/a | `bool` | `false` | no |
-| <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | n/a | `string` | `"001"` | no |
+| <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 | <a name="input_ssl_policy"></a> [ssl\_policy](#input\_ssl\_policy) | n/a | `string` | `"ELBSecurityPolicy-TLS-1-2-2017-01"` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | n/a | `string` | n/a | yes |
 
