@@ -15,6 +15,7 @@ resource "aws_acm_certificate" "default_cert" {
   tags = merge(
     local.all_tags,
     {
+      "Name"="default-cert-alb-${local.system_name}",
       "Description" = "Default Certificate for alb-${local.system_name}"
     }
   )
