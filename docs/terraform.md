@@ -71,6 +71,7 @@
 | <a name="output_load_balancer_http_listener_arn"></a> [load\_balancer\_http\_listener\_arn](#output\_load\_balancer\_http\_listener\_arn) | n/a |
 | <a name="output_load_balancer_https_listener_arn"></a> [load\_balancer\_https\_listener\_arn](#output\_load\_balancer\_https\_listener\_arn) | n/a |
 | <a name="output_load_balancer_id"></a> [load\_balancer\_id](#output\_load\_balancer\_id) | n/a |
+| <a name="output_load_balancer_name"></a> [load\_balancer\_name](#output\_load\_balancer\_name) | n/a |
 | <a name="output_load_balancer_security_group_id"></a> [load\_balancer\_security\_group\_id](#output\_load\_balancer\_security\_group\_id) | n/a |
 | <a name="output_load_balancer_security_group_name"></a> [load\_balancer\_security\_group\_name](#output\_load\_balancer\_security\_group\_name) | n/a |
 | <a name="output_load_balancer_zone_id"></a> [load\_balancer\_zone\_id](#output\_load\_balancer\_zone\_id) | n/a |
