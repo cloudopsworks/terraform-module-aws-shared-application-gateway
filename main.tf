@@ -137,12 +137,32 @@ resource "aws_lb_listener" "extra_https" {
     }
   }
   default_action {
-    type = "fixed-response"
+    type = try(var.default_action.type, "fixed-response")
 
-    fixed_response {
-      content_type = "application/json"
-      message_body = "{\"error\": \"Not Allowed\"}"
-      status_code  = "401"
+    dynamic "fixed_response" {
+      for_each = try(var.default_action.type, "fixed-response") == "fixed-response" ? [1] : []
+      content {
+        content_type = try(var.default_action.fixed.content_type, "application/json")
+        message_body = try(var.default_action.fixed.body, "{\"error\": \"Not Allowed\"}")
+        status_code  = try(var.default_action.fixed.status, "401")
+      }
+    }
+    dynamic "forward" {
+      for_each = try(var.default_action.type, "fixed-response") == "forward" ? [1] : []
+      content {
+        target_group_arn = var.default_action.forward.target_group_arn
+      }
+    }
+    dynamic "redirect" {
+      for_each = try(var.default_action.type, "fixed-response") == "redirect" ? [1] : []
+      content {
+        host        = try(var.default_action.redirect.host, "#{host}")
+        path        = try(var.default_action.redirect.path, "/#{path}")
+        port        = try(var.default_action.redirect.port, "#{port}")
+        protocol    = try(var.default_action.redirect.protocol, "#{protocol}")
+        query       = try(var.default_action.redirect.query, "#{query}")
+        status_code = try(var.default_action.redirect.status_code, "HTTP_302")
+      }
     }
   }
   tags = merge(
