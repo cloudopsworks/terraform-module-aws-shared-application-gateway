@@ -72,3 +72,10 @@ variable "mutual_authentication" {
   default     = {}
   nullable    = false
 }
+
+variable "default_action" {
+  description = "Default action for the HTTP listener. If not specified, it will default to a redirect to HTTPS."
+  type        = any
+  default     = {}
+  nullable    = false
+}
