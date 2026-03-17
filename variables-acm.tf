@@ -26,6 +26,7 @@ variable "default_ssl" {
     validation_domain = "example.com"
     validation_email  = ""
   }
+  nullable = false
 }
 
 variable "acm_certificate_arn" {
