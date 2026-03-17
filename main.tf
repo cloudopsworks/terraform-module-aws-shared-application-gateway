@@ -150,7 +150,20 @@ resource "aws_lb_listener" "extra_https" {
     dynamic "forward" {
       for_each = try(var.default_action.type, "fixed-response") == "forward" ? [1] : []
       content {
-        target_group_arn = try(var.default_action.forward.target_group_arn, null)
+        dynamic "target_group" {
+          for_each = try(var.default_action.forward.target_groups, [])
+          content {
+            arn    = target_group.value.arn
+            weight = try(target_group.value.weight, null)
+          }
+        }
+        dynamic "stickiness" {
+          for_each = length(try(var.default_action.forward.stickiness, {})) > 0 ? [1] : []
+          content {
+            enabled  = try(var.default_action.forward.stickiness.enabled, true)
+            duration = try(var.default_action.forward.stickiness.duration, null)
+          }
+        }
       }
     }
     dynamic "redirect" {
