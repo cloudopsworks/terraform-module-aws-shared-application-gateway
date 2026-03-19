@@ -77,3 +77,4 @@ This document provides instructions for AI Agents working with the implementatio
     name, description, introduction, usage, examples and quickstart, usage and examples must be depicted with terragrunt in mind avoid plain terraform hcl,
     also usage must document all variables used in the module with its corresponding structure documented inline also include the YAML formatted variables full documentation.
   - Updates: update using the criteria applied before, as new configurations were added to the module
+  - Documentation generation must be done with command: `make readme`
