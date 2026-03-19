@@ -8,11 +8,11 @@
   -->
 [![README Header][readme_header_img]][readme_header_link]
 
-[![cloudopsworks][logo]](https://cloudops.works/)
+[![cloudopsworks][logo]](https://cloudopsworks.co/)
 
 # Terraform Shared/Central Application Gateway Module
 
-
+ [![Latest Release](https://img.shields.io/github/release/cloudopsworks/terraform-module-aws-shared-application-gateway.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway/releases/latest) [![Last Updated](https://img.shields.io/github/last-commit/cloudopsworks/terraform-module-aws-shared-application-gateway.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway/commits)
 
 
 AWS Application Load Balancer (ALB) Terraform module for setting up a shared/central application gateway with comprehensive features including multiple listeners, SSL/TLS termination, mutual TLS authentication, WAF integration, and dynamic target group routing. Supports both internal and external facing configurations with customizable security policies and access logging capabilities.
@@ -22,15 +22,10 @@ AWS Application Load Balancer (ALB) Terraform module for setting up a shared/cen
 
 This project is part of our comprehensive approach towards DevOps Acceleration. 
 [<img align="right" title="Share via Email" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/ios-mail.svg"/>][share_email]
-[<img align="right" title="Share on Google+" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-googleplus.svg" />][share_googleplus]
 [<img align="right" title="Share on Facebook" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-facebook.svg" />][share_facebook]
 [<img align="right" title="Share on Reddit" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-reddit.svg" />][share_reddit]
 [<img align="right" title="Share on LinkedIn" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-linkedin.svg" />][share_linkedin]
-[<img align="right" title="Share on Twitter" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-twitter.svg" />][share_twitter]
-
-
-[![Terraform Open Source Modules](https://docs.cloudops.works/images/terraform-open-source-modules.svg)][terraform_modules]
-
+[<img align="right" title="Share on X" width="24" height="24" src="https://docs.cloudops.works/images/ionicons/logo-twitter.svg" />][share_twitter]
 
 
 It's 100% Open Source and licensed under the [APACHE2](LICENSE).
@@ -72,7 +67,9 @@ This Terraform module creates a centralized Application Load Balancer (ALB) with
 Instead pin to the release tag (e.g. `?ref=vX.Y.Z`) of one of our [latest releases](https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway/releases).
 
 
-## Terragrunt Configuration
+## Basic Terragrunt Configuration
+
+### Minimal Setup (Internet-Facing ALB with Auto-Generated Certificate)
 ```hcl
 # terragrunt.hcl
 include "root" {
@@ -84,72 +81,545 @@ terraform {
 }
 
 inputs = {
-  # Network Configuration
-  vpc_id             = "vpc-1234567890"
-  is_internal        = false
-  private_subnet_ids = ["subnet-1", "subnet-2"]
-  public_subnet_ids  = ["subnet-3", "subnet-4"]
-
-  # SSL/TLS Configuration
-  ssl_policy         = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn    = "arn:aws:acm:region:account:certificate/certificate-id"
-
-  # Access Logs Configuration
-  access_logs = {
-    enabled     = true
-    bucket_name = "my-alb-logs"
-    logs_prefix = "alb-logs"
+  # Required: Organization Configuration
+  org = {
+    organization_name = "mycompany"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
   }
 
-  # Security Groups
-  security_groups = ["sg-12345678"]
+  # Required: Network Configuration
+  vpc_id            = "vpc-1234567890abcdef0"
+  public_subnet_ids = ["subnet-abc123", "subnet-def456"]  # Must span 2+ AZs
+  is_internal       = false  # Internet-facing ALB
 
-  # WAF Configuration
-  waf_acl_arn = "arn:aws:wafv2:region:account:regional/webacl/name/id"
-
-  # Listeners Configuration
-  listeners = {
-    http = {
-      port     = 80
-      protocol = "HTTP"
-      default_action = {
-        type = "redirect"
-        redirect = {
-          port        = "443"
-          protocol    = "HTTPS"
-          status_code = "HTTP_301"
-        }
-      }
-    }
-    https = {
-      port            = 443
-      protocol        = "HTTPS"
-      ssl_policy      = "ELBSecurityPolicy-TLS-1-2-2017-01"
-      certificate_arn = "arn:aws:acm:region:account:certificate/certificate-id"
-    }
+  # Required: SSL Certificate (Option 1: Auto-generated)
+  default_ssl = {
+    enabled           = true
+    cn                = "app.example.com"
+    san               = ["www.app.example.com"]
+    auto_validation   = true
+    validation_method = "DNS"
+    validation_domain = "example.com"  # Route53 hosted zone
   }
 }
 ```
 
+### Complete Configuration with All Features
+```hcl
+# terragrunt.hcl
+include "root" {
+  path = find_in_parent_folders()
+}
 
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+}
+
+inputs = {
+  # Organization Configuration (Required)
+  org = {
+    organization_name = "mycompany"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
+  }
+
+  # Spoke Configuration (Optional)
+  spoke_def = "001"  # 3-digit spoke identifier
+
+  # Network Configuration (Required)
+  vpc_id            = "vpc-1234567890abcdef0"
+  public_subnet_ids = ["subnet-abc123", "subnet-def456"]
+  is_internal       = false
+
+  # ALB Configuration (Optional)
+  ip_address_type          = "dualstack"  # Enable IPv6
+  delete_protection        = true
+  cross_zone_load_balancing = true
+  server_header_enabled    = false
+
+  # SSL/TLS Configuration (Option 2: Existing Certificate)
+  acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+  ssl_policy          = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+
+  # Mutual TLS Authentication for HTTPS Listener (Optional)
+  mutual_authentication = {
+    mode            = "verify"
+    trust_store_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/my-trust-store/abc123"
+  }
+
+  # Access Logs Configuration (Optional)
+  access_logs = {
+    enabled              = true
+    bucket_name          = "my-company-alb-logs"
+    logs_prefix          = "production/us-east-1"
+    logs_retention_years = 7
+    logs_archive_days    = 90
+  }
+
+  # Extra Listeners (Optional)
+  extra_listeners = [
+    {
+      port = 8443
+      ssl  = true
+      mutual_authentication = {
+        mode            = "verify"
+        trust_store_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/my-trust-store/abc123"
+      }
+    },
+    {
+      port = 8080
+      ssl  = false
+    }
+  ]
+
+  # Default Action for Extra Listeners (Optional)
+  default_action = {
+    type = "fixed-response"
+    fixed = {
+      content_type = "application/json"
+      body         = "{\"error\": \"Unauthorized\"}"
+      status       = "401"
+    }
+  }
+
+  # Additional Tags (Optional)
+  extra_tags = {
+    Project     = "shared-infrastructure"
+    ManagedBy   = "terraform"
+    CostCenter  = "platform"
+  }
+}
+```
+
+## Variable Reference
+
+See inline documentation in the following files for detailed configuration structures:
+- **ALB Configuration**: See `variables-alb.tf` for network, listener, and mTLS settings
+- **Certificate Configuration**: See `variables-acm.tf` for SSL certificate options
+- **Logging Configuration**: See `variables-logs.tf` for access and connection logging
+- **Organization Settings**: See `variables.tf` for tagging and naming conventions
+
+## Quick Start
+
+## Prerequisites
+
+Before deploying this module, ensure you have:
+
+1. **AWS Account Setup**
+   - Active AWS account with appropriate permissions
+   - IAM permissions to create ALB, ACM certificates, Route53 records, and Security Groups
+   - Optionally, permissions for S3 bucket policies (if enabling access logs)
+
+2. **Network Infrastructure**
+   - VPC created with CIDR block configured
+   - At least 2 subnets in different availability zones:
+     - Public subnets (with IGW) for internet-facing ALB
+     - Private subnets for internal ALB
+   - Route tables properly configured
+
+3. **DNS Configuration** (if using auto-generated certificates)
+   - Route53 hosted zone for your domain
+   - Domain delegation configured properly
+
+4. **Terraform/Terragrunt Setup**
+   - Terraform >= 1.3 installed
+   - Terragrunt configured (recommended)
+   - AWS credentials configured (`~/.aws/credentials` or environment variables)
+
+## Step-by-Step Deployment
+
+### Step 1: Create Terragrunt Configuration
+
+Create a new directory for your ALB configuration:
+
+```bash
+mkdir -p infrastructure/alb/shared-gateway
+cd infrastructure/alb/shared-gateway
+```
+
+Create `terragrunt.hcl`:
+
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+}
+
+inputs = {
+  org = {
+    organization_name = "mycompany"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
+  }
+
+  vpc_id            = dependency.vpc.outputs.vpc_id
+  public_subnet_ids = dependency.vpc.outputs.public_subnet_ids
+
+  default_ssl = {
+    enabled           = true
+    cn                = "app.mycompany.com"
+    auto_validation   = true
+    validation_method = "DNS"
+    validation_domain = "mycompany.com"
+  }
+}
+```
+
+### Step 2: Initialize and Plan
+
+```bash
+terragrunt init
+terragrunt plan
+```
+
+Review the plan output to ensure resources will be created as expected.
+
+### Step 3: Deploy
+
+```bash
+terragrunt apply
+```
+
+The deployment will:
+1. Create the Application Load Balancer
+2. Create security groups with HTTP (80) and HTTPS (443) ingress rules
+3. Generate ACM certificate and DNS validation records (if `auto_validation = true`)
+4. Create HTTP listener with redirect to HTTPS
+5. Create HTTPS listener with the certificate
+6. Tag network interfaces appropriately
+
+**Note:** Certificate validation may take 5-30 minutes depending on DNS propagation.
+
+### Step 4: Verify Deployment
+
+After deployment completes, verify the ALB:
+
+```bash
+# Get ALB DNS name
+terragrunt output load_balancer_dns_name
+
+# Test HTTP to HTTPS redirect
+curl -I http://<alb-dns-name>
+
+# Verify certificate
+openssl s_client -connect <alb-dns-name>:443 -servername app.mycompany.com
+```
+
+### Step 5: Configure DNS
+
+Create a Route53 ALIAS record pointing your domain to the ALB:
+
+```hcl
+# In your Route53 configuration
+resource "aws_route53_record" "app" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "app.mycompany.com"
+  type    = "A"
+
+  alias {
+    name                   = dependency.alb.outputs.load_balancer_dns_name
+    zone_id                = dependency.alb.outputs.load_balancer_zone_id
+    evaluate_target_health = true
+  }
+}
+```
+
+### Step 6: Add Target Groups and Listener Rules
+
+The ALB is now ready. Next steps:
+
+1. Create target groups for your applications
+2. Add listener rules to route traffic based on path/host
+3. Attach WAF WebACL if needed
+4. Configure CloudWatch alarms for monitoring
+
+## Common Issues and Troubleshooting
+
+### Certificate Validation Timeout
+
+**Problem:** Certificate stuck in "Pending Validation" status
+
+**Solutions:**
+- Verify Route53 hosted zone domain matches `validation_domain`
+- Check DNS propagation: `dig _<validation-record>.mycompany.com`
+- Ensure Route53 zone is publicly accessible
+- If using manual validation, create CNAME records from ACM console
+
+### ALB Not Accessible
+
+**Problem:** Cannot reach ALB via DNS or IP
+
+**Solutions:**
+- Verify subnets have internet gateway (for internet-facing ALB)
+- Check security group ingress rules allow ports 80/443
+- Ensure subnets span at least 2 availability zones
+- Verify VPC DNS resolution is enabled
+
+### SSL/TLS Errors
+
+**Problem:** Certificate errors or TLS handshake failures
+
+**Solutions:**
+- Verify certificate ARN is valid and in "Issued" status
+- Check certificate covers the domain name being accessed
+- Ensure SSL policy is compatible with your clients
+- For mTLS: verify trust store contains correct CA certificates
+
+## Next Steps
+
+- **Add Listener Rules**: Configure routing to target groups
+- **Enable WAF**: Attach Web Application Firewall for security
+- **Configure Monitoring**: Set up CloudWatch dashboards and alarms
+- **Enable Access Logs**: Configure S3 bucket for request logging
+- **Implement Auto-Scaling**: Create target groups with auto-scaling policies
 
 
 ## Examples
 
-### Basic External ALB
-```hcl
-module "external_alb" {
-  source = "cloudopsworks/shared-application-gateway/aws"
+## Example 1: Basic Internet-Facing ALB with Auto-Generated Certificate
 
-  vpc_id            = "vpc-1234567890"
-  public_subnet_ids = ["subnet-1", "subnet-2"]
+This example creates a minimal internet-facing ALB with automatic SSL certificate generation and DNS validation.
+
+```hcl
+# terragrunt.hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+}
+
+inputs = {
+  org = {
+    organization_name = "acme"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
+  }
+
+  vpc_id            = "vpc-0a1b2c3d4e5f67890"
+  public_subnet_ids = ["subnet-abc123", "subnet-def456"]
   is_internal       = false
+
+  default_ssl = {
+    enabled           = true
+    cn                = "api.acme.com"
+    san               = ["www.api.acme.com"]
+    auto_validation   = true
+    validation_method = "DNS"
+    validation_domain = "acme.com"
+  }
 }
 ```
 
-### Internal ALB with mTLS
+## Example 2: Internal ALB with Mutual TLS Authentication
+
+This example creates an internal ALB with mutual TLS (mTLS) for secure service-to-service communication.
+
 ```hcl
-module "internal_alb" {
+# terragrunt.hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+}
+
+inputs = {
+  org = {
+    organization_name = "acme"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
+  }
+
+  vpc_id             = "vpc-0a1b2c3d4e5f67890"
+  private_subnet_ids = ["subnet-111222", "subnet-333444"]
+  is_internal        = true
+
+  acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-ab12-cd34-ef56-abcdef123456"
+  ssl_policy          = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+
+  mutual_authentication = {
+    mode            = "verify"
+    trust_store_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/internal-ca/xyz789"
+  }
+}
+```
+
+## Example 3: ALB with Access Logging and IPv6 Support
+
+This example creates an ALB with comprehensive logging and dual-stack IP support.
+
+```hcl
+# terragrunt.hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+}
+
+inputs = {
+  org = {
+    organization_name = "acme"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
+  }
+
+  vpc_id              = "vpc-0a1b2c3d4e5f67890"
+  public_subnet_ids   = ["subnet-abc123", "subnet-def456"]
+  is_internal         = false
+  ip_address_type     = "dualstack"  # Enable IPv6
+
+  acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-ab12-cd34-ef56-abcdef123456"
+
+  access_logs = {
+    enabled              = true
+    bucket_name          = "acme-alb-logs-prod"
+    logs_prefix          = "platform/us-east-1"
+    logs_retention_years = 7
+    logs_archive_days    = 90
+  }
+
+  extra_tags = {
+    Compliance = "PCI-DSS"
+    DataClass  = "sensitive"
+  }
+}
+```
+
+## Example 4: Multi-Listener ALB with Custom Ports
+
+This example creates an ALB with additional listeners on custom ports for different application protocols.
+
+```hcl
+# terragrunt.hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+}
+
+inputs = {
+  org = {
+    organization_name = "acme"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
+  }
+
+  vpc_id            = "vpc-0a1b2c3d4e5f67890"
+  public_subnet_ids = ["subnet-abc123", "subnet-def456"]
+  is_internal       = false
+
+  acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/abcd1234-ab12-cd34-ef56-abcdef123456"
+
+  # Additional listeners for gRPC and WebSocket traffic
+  extra_listeners = [
+    {
+      port = 8443  # gRPC with mTLS
+      ssl  = true
+      mutual_authentication = {
+        mode            = "verify"
+        trust_store_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/grpc-ca/abc123"
+      }
+    },
+    {
+      port = 9443  # WebSocket with SSL
+      ssl  = true
+    }
+  ]
+
+  default_action = {
+    type = "fixed-response"
+    fixed = {
+      content_type = "text/plain"
+      body         = "Service Unavailable"
+      status       = "503"
+    }
+  }
+}
+```
+
+## Example 5: High-Security ALB with All Features
+
+This example demonstrates a fully-featured ALB configuration with all security and operational features enabled.
+
+```hcl
+# terragrunt.hcl
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway.git?ref=v1.0.0"
+}
+
+inputs = {
+  org = {
+    organization_name = "acme"
+    organization_unit = "platform"
+    environment_type  = "production"
+    environment_name  = "prod"
+  }
+
+  spoke_def = "001"
+
+  vpc_id            = "vpc-0a1b2c3d4e5f67890"
+  public_subnet_ids = ["subnet-abc123", "subnet-def456", "subnet-ghi789"]
+  is_internal       = false
+  ip_address_type   = "dualstack"
+
+  # Security Configuration
+  delete_protection = true
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-3-2021-06"  # TLS 1.3 only
+
+  # Auto-generated wildcard certificate
+  default_ssl = {
+    enabled           = true
+    cn                = "*.acme.com"
+    san               = ["acme.com", "*.api.acme.com"]
+    auto_validation   = true
+    validation_method = "DNS"
+    validation_domain = "acme.com"
+    dns_ttl           = 300
+  }
+
+  # mTLS for API endpoints
+  mutual_authentication = {
+    mode            = "verify"
+    trust_store_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/api-ca/main"
+  }
+
+  # Comprehensive logging
+  access_logs = {
+    enabled              = true
+    bucket_name          = "acme-security-logs"
+    logs_prefix          = "alb/production"
+    logs_retention_years = 10
+    logs_archive_days    = 365
+  }
+
+  # Additional listeners
+  extra_listeners = [
+    {
+      port = 8443
+      ssl  = true
+      mutual_authentication = {
+        mode            = "verify"
+        trust_store_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/internal-ca/main"
+      }
+    }
+  ]
+
+  # Operational settings
+  cross_zone_load_balancing = true
+  server_header_enabled     = false  # Security: hide server info
+
+  extra_tags = {
+    Compliance   = "SOC2-PCI-DSS"
+    Environment  = "production"
+    CostCenter   = "engineering"
+    ManagedBy    = "terraform"
+    Team         = "platform"
+    Criticality  = "high"
+  }
+}
+```
 
 
 
@@ -163,6 +633,8 @@ Available targets:
   init/aws                            Initialize the project for a specific cloud provider: AWS
   init/azurerm                        Initialize the project for a specific cloud provider: Azure RM
   init/gcp                            Initialize the project for a specific cloud provider: GCP
+  init/github                         Initialize the project for a specific cloud provider: Github Provider
+  init/mongodb                        Initialize the project for a specific cloud provider: MongoDB Atlas Provider
   lint                                Lint terraform/opentofu code
   tag                                 Tag the current version
 
@@ -178,7 +650,7 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.26.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.36.0 |
 
 ## Modules
 
@@ -211,24 +683,25 @@ Available targets:
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_access_logs"></a> [access\_logs](#input\_access\_logs) | (required) Access logs configuration. | <pre>object({<br/>    enabled              = bool<br/>    bucket_name          = string<br/>    logs_prefix          = optional(string, "")<br/>    logs_retention_years = optional(number, 3)<br/>    logs_archive_days    = optional(number, 30)<br/>  })</pre> | <pre>{<br/>  "bucket_name": "",<br/>  "enabled": false,<br/>  "logs_archive_days": 30,<br/>  "logs_prefix": "",<br/>  "logs_retention_years": 3<br/>}</pre> | no |
-| <a name="input_acm_certificate_arn"></a> [acm\_certificate\_arn](#input\_acm\_certificate\_arn) | n/a | `string` | `""` | no |
-| <a name="input_cross_zone_load_balancing"></a> [cross\_zone\_load\_balancing](#input\_cross\_zone\_load\_balancing) | n/a | `bool` | `true` | no |
-| <a name="input_default_ssl"></a> [default\_ssl](#input\_default\_ssl) | n/a | <pre>object({<br/>    enabled           = bool<br/>    cn                = string<br/>    san               = optional(list(string), [])<br/>    auto_validation   = optional(bool, false)<br/>    validation_method = optional(string, "DNS")<br/>    validation_domain = optional(string, "")<br/>    validation_email  = optional(string, "")<br/>  })</pre> | <pre>{<br/>  "auto_validation": false,<br/>  "cn": "",<br/>  "enabled": false,<br/>  "san": [],<br/>  "validation_domain": "example.com",<br/>  "validation_email": "",<br/>  "validation_method": "DNS"<br/>}</pre> | no |
-| <a name="input_delete_protection"></a> [delete\_protection](#input\_delete\_protection) | n/a | `bool` | `true` | no |
-| <a name="input_extra_listeners"></a> [extra\_listeners](#input\_extra\_listeners) | n/a | `any` | `[]` | no |
+| <a name="input_access_logs"></a> [access\_logs](#input\_access\_logs) | (Optional) Configuration for ALB access and connection logs stored in S3.<br/>When enabled, the ALB will write detailed request logs and connection logs to the specified S3 bucket.<br/><br/>Configuration structure (YAML format):<pre>yaml<br/>access_logs:<br/>  enabled: true                       # (Required) Enable access and connection logging. Default: false<br/>  bucket_name: "my-alb-logs"          # (Required when enabled) S3 bucket name for logs<br/>  logs_prefix: "production/alb"       # (Optional) S3 prefix for organizing logs. Default: ""<br/>  logs_retention_years: 3             # (Optional) Years to retain logs. Default: 3<br/>  logs_archive_days: 30               # (Optional) Days before archiving to Glacier. Default: 30</pre>**S3 Bucket Requirements:**<br/>- Bucket must be in the same region as the ALB<br/>- Bucket must have appropriate bucket policy to allow ELB service to write logs<br/>- Bucket policy example:<pre>json<br/>  {<br/>    "Effect": "Allow",<br/>    "Principal": {<br/>      "Service": "elasticloadbalancing.amazonaws.com"<br/>    },<br/>    "Action": "s3:PutObject",<br/>    "Resource": "arn:aws:s3:::my-alb-logs/*"<br/>  }</pre>**Log Types:**<br/>- **Access Logs**: Stored at `s3://<bucket>/<prefix>/access/`<br/>  - Contains detailed information about requests sent to the ALB<br/>  - Includes client IP, request path, response codes, latency, etc.<br/>- **Connection Logs**: Stored at `s3://<bucket>/<prefix>/connections/`<br/>  - Contains TLS handshake details and connection-level information<br/>  - Includes cipher suite, TLS version, connection time, etc.<br/><br/>**Example:**<pre>yaml<br/>access_logs:<br/>  enabled: true<br/>  bucket_name: "my-company-alb-logs"<br/>  logs_prefix: "production/us-east-1"<br/>  logs_retention_years: 7<br/>  logs_archive_days: 90</pre>Default: { enabled = false } | <pre>object({<br/>    enabled              = bool<br/>    bucket_name          = string<br/>    logs_prefix          = optional(string, "")<br/>    logs_retention_years = optional(number, 3)<br/>    logs_archive_days    = optional(number, 30)<br/>  })</pre> | <pre>{<br/>  "bucket_name": "",<br/>  "enabled": false,<br/>  "logs_archive_days": 30,<br/>  "logs_prefix": "",<br/>  "logs_retention_years": 3<br/>}</pre> | no |
+| <a name="input_acm_certificate_arn"></a> [acm\_certificate\_arn](#input\_acm\_certificate\_arn) | (Optional) ARN of an existing ACM Certificate to use for HTTPS listeners.<br/>When provided, the module will not create a new certificate.<br/><br/>**Requirements:**<br/>- Certificate must be in the same AWS region as the ALB<br/>- Certificate must be valid for the domain names used in ALB routing<br/>- Certificate must be in "Issued" status<br/><br/>**Example:**<pre>yaml<br/>acm_certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"</pre>**Note:** This takes precedence over `default_ssl`. If both are provided, this ARN will be used.<br/><br/>Default: "" (use auto-generated certificate from `default_ssl` if enabled) | `string` | `""` | no |
+| <a name="input_cross_zone_load_balancing"></a> [cross\_zone\_load\_balancing](#input\_cross\_zone\_load\_balancing) | (Optional) Enable cross-zone load balancing to distribute traffic evenly across all targets in all enabled AZs.<br/>- `true`: Enable cross-zone load balancing (default, recommended for HA)<br/>- `false`: Disable cross-zone load balancing<br/>Default: true | `bool` | `true` | no |
+| <a name="input_default_action"></a> [default\_action](#input\_default\_action) | (Optional) Default action for extra listeners when no routing rules match.<br/>The HTTP listener (port 80) always redirects to HTTPS. This configures extra listeners.<br/><br/>Configuration structure (YAML format):<pre>yaml<br/>default_action:<br/>  type: "fixed-response"              # (Required) Action type: "fixed-response", "forward", or "redirect"<br/><br/>  # For fixed-response type:<br/>  fixed:<br/>    content_type: "application/json"  # (Optional) Response content type<br/>    body: '{"error": "Not Allowed"}'  # (Optional) Response body<br/>    status: "401"                     # (Optional) HTTP status code<br/><br/>  # For forward type:<br/>  forward:<br/>    target_groups:                    # (Required) List of target groups<br/>      - arn: "arn:aws:..."            # (Required) Target group ARN<br/>        weight: 100                   # (Optional) Weight for weighted routing<br/>    stickiness:                       # (Optional) Sticky session configuration<br/>      enabled: true                   # (Optional) Enable stickiness<br/>      duration: 3600                  # (Optional) Duration in seconds<br/><br/>  # For redirect type:<br/>  redirect:<br/>    protocol: "HTTPS"                 # (Optional) Redirect protocol. Default: "#{protocol}"<br/>    port: "443"                       # (Optional) Redirect port. Default: "#{port}"<br/>    host: "#{host}"                   # (Optional) Redirect host<br/>    path: "/#{path}"                  # (Optional) Redirect path<br/>    query: "#{query}"                 # (Optional) Redirect query<br/>    status_code: "HTTP_301"           # (Optional) Status code: HTTP_301 or HTTP_302</pre>**Examples:**<pre>yaml<br/># Return fixed 401 response (default)<br/>default_action:<br/>  type: "fixed-response"<br/>  fixed:<br/>    content_type: "application/json"<br/>    body: '{"error": "Unauthorized"}'<br/>    status: "401"<br/><br/># Forward to target group<br/>default_action:<br/>  type: "forward"<br/>  forward:<br/>    target_groups:<br/>      - arn: "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/my-targets/abc123"<br/>        weight: 100<br/><br/># Redirect to HTTPS<br/>default_action:<br/>  type: "redirect"<br/>  redirect:<br/>    protocol: "HTTPS"<br/>    port: "443"<br/>    status_code: "HTTP_301"</pre>Default: {} (fixed-response with 401 status) | `any` | `{}` | no |
+| <a name="input_default_ssl"></a> [default\_ssl](#input\_default\_ssl) | (Optional) Configuration for automatically creating an ACM certificate for the ALB listener.<br/>When enabled, creates a new certificate with automatic or manual validation.<br/><br/>Configuration structure (YAML format):<pre>yaml<br/>default_ssl:<br/>  enabled: true                       # (Required) Enable auto-generated certificate. Default: false<br/>  cn: "example.com"                   # (Required when enabled) Common Name (primary domain)<br/>  san:                                # (Optional) Subject Alternative Names (additional domains)<br/>    - "www.example.com"<br/>    - "api.example.com"<br/>  auto_validation: true               # (Optional) Automatically validate via DNS. Default: false<br/>  validation_method: "DNS"            # (Optional) Validation method: "DNS" or "EMAIL". Default: "DNS"<br/>  validation_domain: "example.com"    # (Required for auto DNS validation) Route53 hosted zone domain<br/>  validation_email: ""                # (Optional) Email for EMAIL validation method<br/>  dns_ttl: 300                        # (Optional) TTL for DNS validation records. Default: 300</pre>**Validation Methods:**<br/>- `DNS`: Requires creating DNS records (CNAME) in your domain's hosted zone<br/>  - With `auto_validation = true`: Module creates Route53 records automatically (requires `validation_domain`)<br/>  - With `auto_validation = false`: You must manually create the validation records<br/>- `EMAIL`: AWS sends validation email to domain contacts (requires manual action)<br/><br/>**Examples:**<pre>yaml<br/># Automatic DNS validation (recommended)<br/>default_ssl:<br/>  enabled: true<br/>  cn: "app.example.com"<br/>  san:<br/>    - "www.app.example.com"<br/>  auto_validation: true<br/>  validation_method: "DNS"<br/>  validation_domain: "example.com"<br/><br/># Manual DNS validation<br/>default_ssl:<br/>  enabled: true<br/>  cn: "app.example.com"<br/>  auto_validation: false<br/>  validation_method: "DNS"<br/><br/># Email validation<br/>default_ssl:<br/>  enabled: true<br/>  cn: "app.example.com"<br/>  auto_validation: false<br/>  validation_method: "EMAIL"</pre>**Note:** If you already have an ACM certificate, use `acm_certificate_arn` instead of this variable.<br/><br/>Default: { enabled = false } | <pre>object({<br/>    enabled           = bool<br/>    cn                = string<br/>    san               = optional(list(string), [])<br/>    auto_validation   = optional(bool, false)<br/>    validation_method = optional(string, "DNS")<br/>    validation_domain = optional(string, "")<br/>    validation_email  = optional(string, "")<br/>    dns_ttl           = optional(number, 300)<br/>  })</pre> | <pre>{<br/>  "auto_validation": false,<br/>  "cn": "",<br/>  "dns_ttl": 300,<br/>  "enabled": false,<br/>  "san": [],<br/>  "validation_domain": "example.com",<br/>  "validation_email": "",<br/>  "validation_method": "DNS"<br/>}</pre> | no |
+| <a name="input_delete_protection"></a> [delete\_protection](#input\_delete\_protection) | (Optional) Enable or disable deletion protection for the ALB to prevent accidental deletion.<br/>- `true`: Deletion protection enabled (default)<br/>- `false`: Deletion protection disabled<br/>Default: true | `bool` | `true` | no |
+| <a name="input_extra_listeners"></a> [extra\_listeners](#input\_extra\_listeners) | (Optional) Additional listeners beyond the default HTTP (80) and HTTPS (443) listeners.<br/><br/>Configuration structure (YAML format):<pre>yaml<br/>extra_listeners:<br/>  - port: 8443                        # (Required) Port number for the listener<br/>    ssl: true                         # (Optional) Enable SSL/TLS. Default: false<br/>    mutual_authentication:            # (Optional) mTLS configuration for this listener<br/>      mode: "verify"                  # (Required) "off", "verify", or "passthrough"<br/>      trust_store_arn: "arn:aws:..."  # (Optional) Trust store ARN<br/>      client_cert_expiry: false       # (Optional) Ignore cert expiry</pre>**Examples:**<pre>yaml<br/># HTTP listener on custom port<br/>extra_listeners:<br/>  - port: 8080<br/>    ssl: false<br/><br/># HTTPS listener with mTLS<br/>extra_listeners:<br/>  - port: 8443<br/>    ssl: true<br/>    mutual_authentication:<br/>      mode: "verify"<br/>      trust_store_arn: "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/my-trust-store/abc123"</pre>Default: [] | `any` | `[]` | no |
 | <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Extra tags to add to the resources | `map(string)` | `{}` | no |
-| <a name="input_ip_address_type"></a> [ip\_address\_type](#input\_ip\_address\_type) | n/a | `string` | `"ipv4"` | no |
+| <a name="input_ip_address_type"></a> [ip\_address\_type](#input\_ip\_address\_type) | (Optional) The type of IP addresses used by the ALB.<br/>Possible values:<br/>- `ipv4`: IPv4 addresses only (default)<br/>- `dualstack`: Both IPv4 and IPv6 addresses<br/>Default: "ipv4" | `string` | `"ipv4"` | no |
 | <a name="input_is_hub"></a> [is\_hub](#input\_is\_hub) | Is this a hub or spoke configuration? | `bool` | `false` | no |
-| <a name="input_is_internal"></a> [is\_internal](#input\_is\_internal) | Defaults to external ALB | `bool` | `false` | no |
-| <a name="input_mutual_authentication"></a> [mutual\_authentication](#input\_mutual\_authentication) | Enable mutual TLS authentication | `any` | `{}` | no |
+| <a name="input_is_internal"></a> [is\_internal](#input\_is\_internal) | (Optional) Whether the ALB should be internal or internet-facing.<br/>- `false`: Internet-facing ALB with public IP addresses (default)<br/>- `true`: Internal ALB accessible only within the VPC<br/>Default: false | `bool` | `false` | no |
+| <a name="input_mutual_authentication"></a> [mutual\_authentication](#input\_mutual\_authentication) | (Optional) Enable mutual TLS authentication for the default HTTPS listener (port 443).<br/>When configured, the ALB validates client certificates against a trust store before allowing connections.<br/><br/>Configuration structure (YAML format):<pre>yaml<br/>mutual_authentication:<br/>  mode: "verify"                      # (Required) Authentication mode<br/>  trust_store_arn: "arn:aws:..."      # (Optional) ARN of the trust store containing client CA certificates<br/>  client_cert_expiry: false           # (Optional) Ignore client certificate expiry. Default: false</pre>**Mode options:**<br/>- `off`: Disable mutual TLS authentication (default)<br/>- `verify`: Require and validate client certificates against the trust store<br/>- `passthrough`: Accept client certificates but don't validate them<br/><br/>**Example:**<pre>yaml<br/>mutual_authentication:<br/>  mode: "verify"<br/>  trust_store_arn: "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/my-trust-store/1234567890abcdef"<br/>  client_cert_expiry: false</pre>Default: {} (disabled) | `any` | `{}` | no |
 | <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
-| <a name="input_private_subnet_ids"></a> [private\_subnet\_ids](#input\_private\_subnet\_ids) | n/a | `list(string)` | `[]` | no |
-| <a name="input_public_subnet_ids"></a> [public\_subnet\_ids](#input\_public\_subnet\_ids) | n/a | `list(string)` | `[]` | no |
-| <a name="input_server_header_enabled"></a> [server\_header\_enabled](#input\_server\_header\_enabled) | n/a | `bool` | `false` | no |
+| <a name="input_private_subnet_ids"></a> [private\_subnet\_ids](#input\_private\_subnet\_ids) | (Optional) List of private subnet IDs for internal ALB deployment.<br/>Used when `is_internal = true`. Must span at least 2 availability zones.<br/>Example: ["subnet-abc123", "subnet-def456"]<br/>Default: [] | `list(string)` | `[]` | no |
+| <a name="input_public_subnet_ids"></a> [public\_subnet\_ids](#input\_public\_subnet\_ids) | (Optional) List of public subnet IDs for internet-facing ALB deployment.<br/>Used when `is_internal = false`. Must span at least 2 availability zones.<br/>Example: ["subnet-123abc", "subnet-456def"]<br/>Default: [] | `list(string)` | `[]` | no |
+| <a name="input_server_header_enabled"></a> [server\_header\_enabled](#input\_server\_header\_enabled) | (Optional) Enable or disable the server header in HTTP responses.<br/>- `true`: Include server header (may expose version information)<br/>- `false`: Suppress server header (default, recommended for security)<br/>Default: false | `bool` | `false` | no |
 | <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
-| <a name="input_ssl_policy"></a> [ssl\_policy](#input\_ssl\_policy) | n/a | `string` | `"ELBSecurityPolicy-TLS-1-2-2017-01"` | no |
-| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | n/a | `string` | n/a | yes |
+| <a name="input_ssl_policy"></a> [ssl\_policy](#input\_ssl\_policy) | (Optional) The security policy to apply to HTTPS listeners.<br/>Common policies:<br/>- `ELBSecurityPolicy-TLS-1-2-2017-01`: TLS 1.2+ (default, recommended)<br/>- `ELBSecurityPolicy-TLS13-1-2-2021-06`: TLS 1.3 and 1.2<br/>- `ELBSecurityPolicy-FS-1-2-2019-08`: Forward secrecy only<br/>Default: "ELBSecurityPolicy-TLS-1-2-2017-01" | `string` | `"ELBSecurityPolicy-TLS-1-2-2017-01"` | no |
+| <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | (Required) The ID of the VPC where the ALB will be deployed.<br/>Example: "vpc-1234567890abcdef0" | `string` | n/a | yes |
 
 ## Outputs
 
@@ -253,10 +726,9 @@ Available targets:
 
 File a GitHub [issue](https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway/issues), send us an [email][email] or join our [Slack Community][slack].
 
-[![README Commercial Support][readme_commercial_support_img]][readme_commercial_support_link]
 
 ## DevOps Tools
-
+[]()
 ## Slack Community
 
 
@@ -277,7 +749,7 @@ Please use the [issue tracker](https://github.com/cloudopsworks/terraform-module
 
 ## Copyrights
 
-Copyright © 2024-2025 [Cloud Ops Works LLC](https://cloudops.works)
+Copyright © 2024-2026 [Cloud Ops Works LLC](https://cloudops.works)
 
 
 
@@ -334,32 +806,31 @@ This project is maintained by [Cloud Ops Works LLC][website].
 [![README Footer][readme_footer_img]][readme_footer_link]
 [![Beacon][beacon]][website]
 
-  [logo]: https://cloudops.works/logo-300x69.svg
-  [docs]: https://cowk.io/docs?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=docs
-  [website]: https://cowk.io/homepage?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=website
-  [github]: https://cowk.io/github?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=github
-  [jobs]: https://cowk.io/jobs?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=jobs
-  [hire]: https://cowk.io/hire?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=hire
-  [slack]: https://cowk.io/slack?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=slack
-  [linkedin]: https://cowk.io/linkedin?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=linkedin
-  [twitter]: https://cowk.io/twitter?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=twitter
-  [testimonial]: https://cowk.io/leave-testimonial?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=testimonial
-  [office_hours]: https://cloudops.works/office-hours?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=office_hours
-  [newsletter]: https://cowk.io/newsletter?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=newsletter
-  [email]: https://cowk.io/email?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=email
-  [commercial_support]: https://cowk.io/commercial-support?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=commercial_support
-  [we_love_open_source]: https://cowk.io/we-love-open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=we_love_open_source
-  [terraform_modules]: https://cowk.io/terraform-modules?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=terraform_modules
-  [readme_header_img]: https://cloudops.works/readme/header/img
-  [readme_header_link]: https://cloudops.works/readme/header/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_header_link
-  [readme_footer_img]: https://cloudops.works/readme/footer/img
-  [readme_footer_link]: https://cloudops.works/readme/footer/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_footer_link
-  [readme_commercial_support_img]: https://cloudops.works/readme/commercial-support/img
-  [readme_commercial_support_link]: https://cloudops.works/readme/commercial-support/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_commercial_support_link
-  [share_twitter]: https://twitter.com/intent/tweet/?text=Terraform+Shared/Central+Application+Gateway+Module&url=https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway
+  [logo]: https://cloudopsworks.co/images/main-logo.png
+  [docs]: https://cloudopsworks.co/resources?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=docs
+  [website]: https://cloudopsworks.co?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=website
+  [github]: https://cloudopsworks.co/github?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=github
+  [jobs]: https://cloudopsworks.co/jobs?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=jobs
+  [hire]: https://cloudopsworks.co/hire?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=hire
+  [slack]: https://cloudopsworks.co/slack?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=slack
+  [linkedin]: https://cloudopsworks.co/linkedin?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=linkedin
+  [x]: https://cloudopsworks.co/x?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=x
+  [testimonial]: https://cloudopsworks.co/case-studies?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=testimonial
+  [office_hours]: https://cloudopsworks.co/office-hours?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=office_hours
+  [newsletter]: https://cloudopsworks.co/resources?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=newsletter
+  [email]: https://cloudopsworks.co/contact?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=email
+  [commercial_support]: https://cloudopsworks.co/services?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=commercial_support
+  [we_love_open_source]: https://cloudopsworks.co/open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=we_love_open_source
+  [terraform_modules]: https://cloudopsworks.co/open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=terraform_modules
+  [readme_header_img]: https://cloudopsworks.co/images/readme-header.png
+  [readme_header_link]: https://cloudopsworks.co/readme/header/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_header_link
+  [readme_footer_img]: https://cloudopsworks.co/images/main-logo-footer.png
+  [readme_footer_link]: https://cloudopsworks.co/readme/footer/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_footer_link
+  [readme_commercial_support_img]: https://cloudopsworks.co/readme/commercial-support/img
+  [readme_commercial_support_link]: https://cloudopsworks.co/readme/commercial-support/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_commercial_support_link
+  [share_twitter]: https://x.com/intent/tweet/?text=Terraform+Shared/Central+Application+Gateway+Module&url=https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway
   [share_linkedin]: https://www.linkedin.com/shareArticle?mini=true&title=Terraform+Shared/Central+Application+Gateway+Module&url=https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway
   [share_reddit]: https://reddit.com/submit/?url=https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway
   [share_facebook]: https://facebook.com/sharer/sharer.php?u=https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway
-  [share_googleplus]: https://plus.google.com/share?url=https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway
   [share_email]: mailto:?subject=Terraform+Shared/Central+Application+Gateway+Module&body=https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway
-  [beacon]: https://ga-beacon.cloudops.works/G-7XWMFVFXZT/cloudopsworks/terraform-module-aws-shared-application-gateway?pixel&cs=github&cm=readme&an=terraform-module-aws-shared-application-gateway
+  [beacon]: https://ga-beacon.cloudospworks.co/G-QMZVYYN2VN/cloudopsworks/terraform-module-aws-shared-application-gateway?pixel&cs=github&cm=readme&an=terraform-module-aws-shared-application-gateway

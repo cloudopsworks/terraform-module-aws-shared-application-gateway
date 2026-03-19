@@ -40,7 +40,7 @@ resource "aws_route53_record" "default_cert" {
   allow_overwrite = true
   name            = each.value.name
   records         = [each.value.value]
-  ttl             = 60
+  ttl             = var.default_ssl.dns_ttl
   type            = each.value.type
   zone_id         = data.aws_route53_zone.this[0].id
 }
