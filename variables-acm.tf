@@ -32,4 +32,5 @@ variable "default_ssl" {
 variable "acm_certificate_arn" {
   type    = string
   default = ""
+  nullable = false
 }
