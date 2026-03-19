@@ -726,10 +726,9 @@ Available targets:
 
 File a GitHub [issue](https://github.com/cloudopsworks/terraform-module-aws-shared-application-gateway/issues), send us an [email][email] or join our [Slack Community][slack].
 
-[![README Commercial Support][readme_commercial_support_img]][readme_commercial_support_link]
 
 ## DevOps Tools
-
+[]()
 ## Slack Community
 
 
@@ -807,7 +806,7 @@ This project is maintained by [Cloud Ops Works LLC][website].
 [![README Footer][readme_footer_img]][readme_footer_link]
 [![Beacon][beacon]][website]
 
-  [logo]: https://cloudopsworks.co/logo.png
+  [logo]: https://cloudopsworks.co/images/main-logo.png
   [docs]: https://cloudopsworks.co/resources?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=docs
   [website]: https://cloudopsworks.co?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=website
   [github]: https://cloudopsworks.co/github?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=github
@@ -823,9 +822,9 @@ This project is maintained by [Cloud Ops Works LLC][website].
   [commercial_support]: https://cloudopsworks.co/services?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=commercial_support
   [we_love_open_source]: https://cloudopsworks.co/open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=we_love_open_source
   [terraform_modules]: https://cloudopsworks.co/open-source?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=terraform_modules
-  [readme_header_img]: https://cloudopsworks.co/readme/header/img
+  [readme_header_img]: https://cloudopsworks.co/images/readme-header.png
   [readme_header_link]: https://cloudopsworks.co/readme/header/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_header_link
-  [readme_footer_img]: https://cloudopsworks.co/readme/footer/img
+  [readme_footer_img]: https://cloudopsworks.co/images/main-logo-footer.png
   [readme_footer_link]: https://cloudopsworks.co/readme/footer/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_footer_link
   [readme_commercial_support_img]: https://cloudopsworks.co/readme/commercial-support/img
   [readme_commercial_support_link]: https://cloudopsworks.co/readme/commercial-support/link?utm_source=github&utm_medium=readme&utm_campaign=cloudopsworks/terraform-module-aws-shared-application-gateway&utm_content=readme_commercial_support_link
