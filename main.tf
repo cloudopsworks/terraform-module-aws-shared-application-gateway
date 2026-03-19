@@ -136,45 +136,47 @@ resource "aws_lb_listener" "extra_https" {
       ignore_client_certificate_expiry = try(each.value.mutual_authentication.client_cert_expiry, null)
     }
   }
-  default_action {
-    type = try(var.default_action.type, "fixed-response")
-
-    dynamic "fixed_response" {
-      for_each = try(var.default_action.type, "fixed-response") == "fixed-response" ? [1] : []
-      content {
-        content_type = try(var.default_action.fixed.content_type, "application/json")
-        message_body = try(var.default_action.fixed.body, "{\"error\": \"Not Allowed\"}")
-        status_code  = try(var.default_action.fixed.status, "401")
-      }
-    }
-    dynamic "forward" {
-      for_each = try(var.default_action.type, "fixed-response") == "forward" ? [1] : []
-      content {
-        dynamic "target_group" {
-          for_each = try(var.default_action.forward.target_groups, [])
-          content {
-            arn    = target_group.value.arn
-            weight = try(target_group.value.weight, null)
-          }
-        }
-        dynamic "stickiness" {
-          for_each = length(try(var.default_action.forward.stickiness, {})) > 0 ? [1] : []
-          content {
-            enabled  = try(var.default_action.forward.stickiness.enabled, true)
-            duration = try(var.default_action.forward.stickiness.duration, null)
-          }
+  dynamic "default_action" {
+    for_each = length(try(each.value.default_action, {})) > 0 ? [each.value.default_action] : [var.default_action]
+    content {
+      type = try(each.value.type, "fixed-response")
+      dynamic "fixed_response" {
+        for_each = try(each.value.type, "fixed-response") == "fixed-response" ? [1] : []
+        content {
+          content_type = try(each.value.fixed.content_type, "application/json")
+          message_body = try(each.value.fixed.body, "{\"error\": \"Not Allowed\"}")
+          status_code  = try(each.value.fixed.status, "401")
         }
       }
-    }
-    dynamic "redirect" {
-      for_each = try(var.default_action.type, "fixed-response") == "redirect" ? [1] : []
-      content {
-        host        = try(var.default_action.redirect.host, "#{host}")
-        path        = try(var.default_action.redirect.path, "/#{path}")
-        port        = try(var.default_action.redirect.port, "#{port}")
-        protocol    = try(var.default_action.redirect.protocol, "#{protocol}")
-        query       = try(var.default_action.redirect.query, "#{query}")
-        status_code = try(var.default_action.redirect.status_code, "HTTP_302")
+      dynamic "forward" {
+        for_each = try(each.value.type, "fixed-response") == "forward" ? [1] : []
+        content {
+          dynamic "target_group" {
+            for_each = try(each.value.forward.target_groups, [])
+            content {
+              arn    = target_group.value.arn
+              weight = try(target_group.value.weight, null)
+            }
+          }
+          dynamic "stickiness" {
+            for_each = length(try(each.value.forward.stickiness, {})) > 0 ? [1] : []
+            content {
+              enabled  = try(each.value.forward.stickiness.enabled, true)
+              duration = try(each.value.forward.stickiness.duration, null)
+            }
+          }
+        }
+      }
+      dynamic "redirect" {
+        for_each = try(each.value.type, "fixed-response") == "redirect" ? [1] : []
+        content {
+          host        = try(each.value.redirect.host, "#{host}")
+          path        = try(each.value.redirect.path, "/#{path}")
+          port        = try(each.value.redirect.port, "#{port}")
+          protocol    = try(each.value.redirect.protocol, "#{protocol}")
+          query       = try(each.value.redirect.query, "#{query}")
+          status_code = try(each.value.redirect.status_code, "HTTP_302")
+        }
       }
     }
   }
