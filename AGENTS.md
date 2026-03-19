@@ -68,12 +68,12 @@ This document provides instructions for AI Agents working with the implementatio
 - **Documentation Guideline**:
   - Documentation is maintained at README.yaml
   - Can use Markdown formatting for inner documentation on sections.
-  - Act as an expert professional documentation, terraform and terragrunt, documentation should be human legible, use of tables for legibility is allowed.
-  - Complete the documentation in @variables-module.tf (or whatever was renamed to)  in order to represent the configuration to be applied on all resources, 
-    this documentation must be depicted in YAML format, and applied over each variable declaration section. Improve documentation putting after each item if its (Optional) or (Required) 
-    prefixed with a comment mark # and a description of it and possible default value for example: id: "sampleid"   # (Required) 
+  - Act as an expert documentation professional, and terraform and terragrunt DevOps expert. Generated documentation should be human legible, use of tables for legibility is allowed.
+  - Complete the documentation in @variables-module.tf (or whatever was renamed to, may find multiple variables-*.tf)  in order to represent the configuration to be applied on all resources,
+    this documentation must be depicted in YAML format, and applied over each variable declaration section. Improve documentation putting after each item if its (Optional) or (Required)
+    prefixed with a comment mark # and a description of it and possible default value, for example: id: "sampleid"   # (Required)
     The id of the item also for each item try to infer which are the possible values for them using the terraform module documentation as source, align to be more clear.
-  - Once completed with inline documentation proceed to modify README.yaml accordingly in order to document properly following fields: 
-    name, description, introduction, usage, examples and quickstart, usage and examples must depicted with terragrunt in mind avoid plain terraform hcl, 
+  - Once completed with inline documentation, proceed to modify README.yaml accordingly, in order to document properly following fields:
+    name, description, introduction, usage, examples and quickstart, usage and examples must be depicted with terragrunt in mind avoid plain terraform hcl,
     also usage must document all variables used in the module with its corresponding structure documented inline also include the YAML formatted variables full documentation.
   - Updates: update using the criteria applied before, as new configurations were added to the module
