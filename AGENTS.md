@@ -52,7 +52,7 @@ This document provides instructions for AI Agents working with the implementatio
 - **Mandatory Header**: Each .tf file must start with the following copyright header:
   ```hcl
   ##
-  # (c) 2021-2025
+  # (c) 2021-2026
   #     Cloud Ops Works LLC - https://cloudops.works/
   #     Find us on:
   #       GitHub: https://github.com/cloudopsworks
