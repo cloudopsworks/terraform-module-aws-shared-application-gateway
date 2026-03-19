@@ -137,7 +137,7 @@ resource "aws_lb_listener" "extra_https" {
     }
   }
   dynamic "default_action" {
-    for_each = length(try(each.value.default_action, {})) > 0 ? [each.value.default_action] : [var.default_action]
+    for_each = length(try(each.value.default_action, {})) > 0 ? [tomap(each.value.default_action)] : [tomap(var.default_action)]
     content {
       type = try(each.value.type, "fixed-response")
       dynamic "fixed_response" {
