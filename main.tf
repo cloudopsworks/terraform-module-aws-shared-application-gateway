@@ -98,12 +98,44 @@ resource "aws_lb_listener" "this_https" {
     }
   }
   default_action {
-    type = "fixed-response"
-
-    fixed_response {
-      content_type = "application/json"
-      message_body = "{\"error\": \"Not Allowed\"}"
-      status_code  = "401"
+    type = try(var.default_action.type, "fixed-response")
+    dynamic "fixed_response" {
+      for_each = try(var.default_action.type, "fixed-response") == "fixed-response" ? [1] : []
+      content {
+        content_type = try(var.default_action.fixed.content_type, "application/json")
+        message_body = try(var.default_action.fixed.body, "{\"error\": \"Not Allowed\"}")
+        status_code  = try(var.default_action.fixed.status, "401")
+      }
+    }
+    dynamic "forward" {
+      for_each = try(var.default_action.type, "fixed-response") == "forward" ? [1] : []
+      content {
+        dynamic "target_group" {
+          for_each = try(var.default_action.forward.target_groups, [])
+          content {
+            arn    = target_group.value.arn
+            weight = try(target_group.value.weight, null)
+          }
+        }
+        dynamic "stickiness" {
+          for_each = length(try(var.default_action.forward.stickiness, {})) > 0 ? [1] : []
+          content {
+            enabled  = try(var.default_action.forward.stickiness.enabled, true)
+            duration = try(var.default_action.forward.stickiness.duration, null)
+          }
+        }
+      }
+    }
+    dynamic "redirect" {
+      for_each = try(var.default_action.type, "fixed-response") == "redirect" ? [1] : []
+      content {
+        host        = try(var.default_action.redirect.host, "#{host}")
+        path        = try(var.default_action.redirect.path, "/#{path}")
+        port        = try(var.default_action.redirect.port, "#{port}")
+        protocol    = try(var.default_action.redirect.protocol, "#{protocol}")
+        query       = try(var.default_action.redirect.query, "#{query}")
+        status_code = try(var.default_action.redirect.status_code, "HTTP_302")
+      }
     }
   }
   tags = merge(
@@ -137,7 +169,7 @@ resource "aws_lb_listener" "extra_https" {
     }
   }
   dynamic "default_action" {
-    for_each = length(try(each.value.default_action, {})) > 0 ? [each.value.default_action] : [var.default_action]
+    for_each = length(try(each.value.default_action, {})) > 0 ? [tomap(each.value.default_action)] : [tomap(var.default_action)]
     content {
       type = try(each.value.type, "fixed-response")
       dynamic "fixed_response" {
