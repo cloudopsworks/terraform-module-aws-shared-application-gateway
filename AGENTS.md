@@ -40,10 +40,7 @@ This document provides instructions for AI Agents working with the implementatio
   - Do not create local variables that are not used in the module.
   - Keep local variable names descriptive and consistent with the module's purpose.
   - Use locals to encapsulate complex expressions and improve readability.
-- **Documentation**:
-  - Document all resources, variables, and outputs with clear and concise descriptions.
-  - Use consistent formatting and structure for documentation.
-  - Include examples and usage instructions where applicable.
+- **Documentation**: See [Documentation Guidelines](#documentation-guidelines) section below.
 - **Variables**:
   - Honor structured variables instead of lots of simple variables.
   - Prefer to have a single settings variable for simplicity and maintainability.
@@ -65,16 +62,95 @@ This document provides instructions for AI Agents working with the implementatio
   - Validation & Linting: `make lint`
 - **Repository Management**
   - Use process as described in the contributing guidelines: https://cloudopsworks.co/resources/gitflow-way-of-work/
-- **Documentation Guideline**:
-  - Documentation is maintained at README.yaml
-  - Can use Markdown formatting for inner documentation on sections.
-  - Act as an expert documentation professional, and terraform and terragrunt DevOps expert. Generated documentation should be human legible, use of tables for legibility is allowed.
-  - Complete the documentation in @variables-module.tf (or whatever was renamed to, may find multiple variables-*.tf)  in order to represent the configuration to be applied on all resources,
-    this documentation must be depicted in YAML format, and applied over each variable declaration section. Improve documentation putting after each item if its (Optional) or (Required)
-    prefixed with a comment mark # and a description of it and possible default value, for example: id: "sampleid"   # (Required)
-    The id of the item also for each item try to infer which are the possible values for them using the terraform module documentation as source, align to be more clear.
-  - Once completed with inline documentation, proceed to modify README.yaml accordingly, in order to document properly following fields:
-    name, description, introduction, usage, examples and quickstart, usage and examples must be depicted with terragrunt in mind avoid plain terraform hcl,
-    also usage must document all variables used in the module with its corresponding structure documented inline also include the YAML formatted variables full documentation.
-  - Updates: update using the criteria applied before, as new configurations were added to the module
-  - Documentation generation must be done with command: `make readme`
+
+
+## Versioning Management
+
+Module versioning follows the [GitFlow way of work](https://cloudopsworks.co/resources/gitflow-way-of-work/). Use `make` targets whenever available for branch and release operations.
+
+### General Rules
+
+- **Never push directly to `master`**. All changes must flow through feature, hotfix, or release branches and be merged via pull requests.
+- Follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`) for all module tags.
+
+### Workflow Version Upgrades (Minor or Major)
+
+Upgrades to the GitFlow workflow version itself — whether minor or major — are treated as **hotfixes**:
+
+1. Create a hotfix branch from `master`:
+   ```sh
+   make gitflow/hotfix/start
+   ```
+2. Publish the hotfix branch to the remote:
+   ```sh
+   make gitflow/hotfix/publish
+   ```
+3. Apply the workflow version changes on the hotfix branch.
+4. Finish the hotfix — this merges it into both `master` and `develop`:
+   ```sh
+   make gitflow/hotfix/finish
+   ```
+5. If the `make` target is not available, merge manually using `git merge`:
+   ```sh
+   git checkout develop
+   git merge --no-ff hotfix/<hotfix-name>
+   ```
+6. Hotfix changes **must always be back-merged into `develop`** to keep branches in sync.
+
+### Provider Version Upgrades (Major)
+
+Upgrading a module to a new **major** version of a Terraform provider (e.g., AWS provider `4.x` → `5.x`) constitutes a **release**:
+
+1. Create a release branch from `develop`:
+   ```sh
+   make gitflow/release/start
+   ```
+2. Publish the release branch to the remote:
+   ```sh
+   make gitflow/release/publish
+   ```
+3. Update `versions.tf` with the new provider version constraints and make any required compatibility changes.
+4. Validate and format the module:
+   ```sh
+   make fmt
+   make lint
+   ```
+5. Finish the release — this merges it into `master` and `develop` and creates the version tag:
+   ```sh
+   make gitflow/release/finish
+   ```
+6. Increment the **MAJOR** semver digit for breaking provider changes; increment **MINOR** for backwards-compatible provider upgrades.
+
+### Summary Table
+
+| Change Type                          | Branch Type | Merges Into              | Semver Impact |
+|--------------------------------------|-------------|--------------------------|---------------|
+| Workflow version upgrade (minor/major) | `hotfix`  | `master` + `develop`     | PATCH / MINOR |
+| Provider major version upgrade       | `release`   | `master` + `develop`     | MAJOR         |
+| Provider minor/patch version upgrade | `release`   | `master` + `develop`     | MINOR / PATCH |
+| New module feature                   | `feature`   | `develop`                | MINOR         |
+| Bug fix                              | `hotfix`    | `master` + `develop`     | PATCH         |
+
+
+## Documentation Guidelines
+
+> Act as an expert documentation professional and Terraform/Terragrunt DevOps expert.
+> Generated documentation must be human-legible; tables are encouraged for clarity.
+
+- **Source file**: Documentation is maintained in `README.yaml`. Inner sections may use Markdown formatting.
+- **Inline variable documentation**:
+  - Complete inline documentation in `variables-module.tf` (or its renamed equivalent; there may be multiple `variables-*.tf` files).
+  - Document each variable attribute in YAML format within the variable declaration block.
+  - After each attribute, add a comment indicating whether it is `(Required)` or `(Optional)`, a short description, and the default value when applicable. Example:
+    ```yaml
+    id: "sampleid"   # (Required) Unique identifier for the resource.
+    ```
+  - Infer and document the possible values for each attribute using the upstream Terraform provider documentation as the source.
+- **README.yaml fields**: Once inline documentation is complete, update `README.yaml` to properly document the following fields:
+  - `name`
+  - `description`
+  - `introduction`
+  - `usage` — write examples using Terragrunt HCL; avoid plain Terraform HCL. Include all module variables with their full inline-documented YAML structure.
+  - `examples` and `quickstart`
+- **Updates**: Apply the same criteria above whenever new variables or resources are added to the module.
+- **README.md generation**: Run `make readme` as the **last step** after all documentation updates are complete.
