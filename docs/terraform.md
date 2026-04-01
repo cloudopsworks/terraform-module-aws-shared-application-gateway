@@ -34,6 +34,7 @@
 | [aws_vpc_security_group_ingress_rule.sg_443](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.sg_80](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
 | [aws_vpc_security_group_ingress_rule.sg_extra_https](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_wafv2_web_acl_association.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/wafv2_web_acl_association) | resource |
 | [aws_network_interfaces.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/network_interfaces) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 | [aws_route53_zone.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/route53_zone) | data source |
@@ -61,6 +62,7 @@
 | <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 | <a name="input_ssl_policy"></a> [ssl\_policy](#input\_ssl\_policy) | (Optional) The security policy to apply to HTTPS listeners.<br/>Common policies:<br/>- `ELBSecurityPolicy-TLS-1-2-2017-01`: TLS 1.2+ (default, recommended)<br/>- `ELBSecurityPolicy-TLS13-1-2-2021-06`: TLS 1.3 and 1.2<br/>- `ELBSecurityPolicy-FS-1-2-2019-08`: Forward secrecy only<br/>Default: "ELBSecurityPolicy-TLS-1-2-2017-01" | `string` | `"ELBSecurityPolicy-TLS-1-2-2017-01"` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | (Required) The ID of the VPC where the ALB will be deployed.<br/>Example: "vpc-1234567890abcdef0" | `string` | n/a | yes |
+| <a name="input_web_acl_arn"></a> [web\_acl\_arn](#input\_web\_acl\_arn) | (Optional) ARN of the AWS WAF Web ACL to associate with the ALB for application layer security. | `string` | `""` | no |
 
 ## Outputs
 
