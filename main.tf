@@ -219,3 +219,9 @@ resource "aws_lb_listener" "extra_https" {
     }
   )
 }
+
+resource "aws_wafv2_web_acl_association" "this" {
+  count        = var.web_acl_arn != "" ? 1 : 0
+  web_acl_arn  = var.web_acl_arn
+  resource_arn = aws_lb.this.arn
+}

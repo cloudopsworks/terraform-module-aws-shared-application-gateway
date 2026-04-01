@@ -254,3 +254,9 @@ variable "default_action" {
   default     = {}
   nullable    = false
 }
+
+variable "web_acl_arn" {
+  description = "(Optional) ARN of the AWS WAF Web ACL to associate with the ALB for application layer security."
+  type        = string
+  default     = ""
+}
