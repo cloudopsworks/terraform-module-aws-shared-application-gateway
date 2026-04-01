@@ -259,4 +259,5 @@ variable "web_acl_arn" {
   description = "(Optional) ARN of the AWS WAF Web ACL to associate with the ALB for application layer security."
   type        = string
   default     = ""
+  nullable    = false
 }
