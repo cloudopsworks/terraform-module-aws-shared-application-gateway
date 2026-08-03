@@ -1,18 +1,154 @@
 # Module configuration
-# Required variables
-{{- range .requiredVariables }}
-{{- if ne .Name "org"}}
-# Description {{ .Description }} , Type: {{ .Type }}
-{{ .Name }}: {{ .DefaultValuePlaceholder }}
-{{- end }}
 
-{{- end }}
-# Optional variables
-{{- range .optionalVariables }}
-{{- if ne .Name "is_hub" "spoke_def" "extra_args" }}
-# Description {{ .Description }} , Type: {{ .Type }}
-#{{ .Name }}: {{ .DefaultValue }}
-{{- end }}
+## ---------------------------------------------------------------------------
+## Network placement
+## ---------------------------------------------------------------------------
 
-{{- end }}
+# vpc_id: "vpc-1234567890abcdef0" # (Required) ID of the VPC where the ALB is deployed.
+#                                 # When the VPC dependency is enabled during scaffolding this value is
+#                                 # sourced automatically from the VPC module output and the value set
+#                                 # here is ignored.
+vpc_id: ""
 
+# is_internal: false # (Optional) Whether the ALB is internal or internet-facing. Default: false
+#                    # false -> internet-facing ALB placed on public_subnet_ids
+#                    # true  -> internal ALB placed on private_subnet_ids
+is_internal: false
+
+# public_subnet_ids: # (Optional) Public subnet IDs used when is_internal=false. Default: []
+#                    # Must span at least 2 availability zones.
+#                    # Sourced from the VPC dependency when it is enabled with vpc_subnet_type=public.
+#   - "subnet-123abc"
+#   - "subnet-456def"
+public_subnet_ids: []
+
+# private_subnet_ids: # (Optional) Private subnet IDs used when is_internal=true. Default: []
+#                     # Must span at least 2 availability zones.
+#                     # Sourced from the VPC dependency when it is enabled with
+#                     # vpc_subnet_type=private or vpc_subnet_type=intra.
+#   - "subnet-abc123"
+#   - "subnet-def456"
+private_subnet_ids: []
+
+# ip_address_type: "ipv4" # (Optional) IP address type of the ALB. Default: "ipv4"
+#                         # Valid values: ipv4 | dualstack
+ip_address_type: "ipv4"
+
+## ---------------------------------------------------------------------------
+## Load balancer behaviour
+## ---------------------------------------------------------------------------
+
+# delete_protection: true # (Optional) Enable deletion protection on the ALB. Default: true
+delete_protection: true
+
+# cross_zone_load_balancing: true # (Optional) Distribute traffic evenly across targets in all enabled AZs. Default: true
+cross_zone_load_balancing: true
+
+# server_header_enabled: false # (Optional) Include the server header in HTTP responses. Default: false
+#                              # Keep it false to avoid exposing load balancer version information.
+server_header_enabled: false
+
+## ---------------------------------------------------------------------------
+## TLS termination
+## ---------------------------------------------------------------------------
+
+# ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01" # (Optional) Security policy applied to the HTTPS listeners.
+#                                                 # Default: "ELBSecurityPolicy-TLS-1-2-2017-01"
+#                                                 # Common values:
+#                                                 #   ELBSecurityPolicy-TLS-1-2-2017-01   -> TLS 1.2+ (recommended baseline)
+#                                                 #   ELBSecurityPolicy-TLS13-1-2-2021-06 -> TLS 1.3 and 1.2
+#                                                 #   ELBSecurityPolicy-FS-1-2-2019-08    -> forward secrecy only
+ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
+
+# acm_certificate_arn: "" # (Optional) ARN of an existing ACM certificate for the HTTPS listeners. Default: ""
+#                         # Takes precedence over default_ssl. The certificate must live in the same region
+#                         # as the ALB and be in "Issued" status.
+#                         # Sourced from the ACM dependency when it is enabled during scaffolding.
+#                         # Example: "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+acm_certificate_arn: ""
+
+# default_ssl: # (Optional) Create and manage an ACM certificate for the ALB listeners.
+#              # Default: { enabled: false } — ignored when acm_certificate_arn is set.
+#   enabled: false             # (Required) Enable the auto-generated certificate. Default: false
+#   cn: "app.example.com"      # (Required when enabled) Common Name (primary domain) of the certificate.
+#   san:                       # (Optional) Subject Alternative Names. Default: []
+#     - "www.app.example.com"
+#   auto_validation: false     # (Optional) Create the Route53 validation records automatically. Default: false
+#   validation_method: "DNS"   # (Optional) Validation method. Valid values: DNS | EMAIL. Default: "DNS"
+#   validation_domain: ""      # (Required for auto DNS validation) Route53 public hosted zone name holding
+#                              # the validation records. Default: "example.com"
+#   validation_email: ""       # (Optional) Contact address used with validation_method=EMAIL. Default: ""
+#   dns_ttl: 300               # (Optional) TTL applied to the DNS validation records. Default: 300
+default_ssl:
+  enabled: false
+  cn: ""
+
+# mutual_authentication: # (Optional) Mutual TLS on the default HTTPS listener (port 443). Default: {} (disabled)
+#   mode: "verify"              # (Required) Authentication mode. Valid values: off | verify | passthrough
+#   trust_store_arn: ""         # (Optional) ARN of the trust store holding the client CA certificates.
+#                               # Required when mode=verify.
+#   client_cert_expiry: false   # (Optional) Ignore client certificate expiry. Default: false
+mutual_authentication: {}
+
+## ---------------------------------------------------------------------------
+## Listeners
+## ---------------------------------------------------------------------------
+
+# extra_listeners: # (Optional) Additional listeners on top of the default HTTP (80) and HTTPS (443). Default: []
+#                  # A security group ingress rule is created automatically for every extra listener port.
+#   - port: 8443                    # (Required) Listener port.
+#     ssl: true                     # (Optional) Terminate TLS on this listener. Default: false
+#     mutual_authentication:        # (Optional) Per-listener mTLS. Default: {} (disabled)
+#       mode: "verify"              # (Required) Valid values: off | verify | passthrough
+#       trust_store_arn: ""         # (Optional) Trust store ARN. Required when mode=verify.
+#       client_cert_expiry: false   # (Optional) Ignore client certificate expiry. Default: false
+#     default_action: {}            # (Optional) Per-listener default action, same shape as default_action
+#                                   # below. Falls back to the module-level default_action when omitted.
+extra_listeners: []
+
+# default_action: # (Optional) Default action used by the HTTPS and extra listeners when no rule matches.
+#                 # Default: {} — behaves as a fixed-response with HTTP 401.
+#                 # The HTTP listener on port 80 always redirects to HTTPS and ignores this setting.
+#   type: "fixed-response"             # (Required) Action type. Valid values: fixed-response | forward | redirect
+#   fixed:                             # (Optional) Used when type=fixed-response
+#     content_type: "application/json" # (Optional) Response content type. Default: "application/json"
+#     body: '{"error": "Not Allowed"}' # (Optional) Response body. Default: '{"error": "Not Allowed"}'
+#     status: "401"                    # (Optional) HTTP status code. Default: "401"
+#   forward:                           # (Optional) Used when type=forward
+#     target_groups:                   # (Required) Target groups receiving the traffic.
+#       - arn: ""                      # (Required) Target group ARN.
+#         weight: 100                  # (Optional) Weight for weighted routing. Default: null
+#     stickiness:                      # (Optional) Sticky sessions across the target groups.
+#       enabled: true                  # (Optional) Enable stickiness. Default: true
+#       duration: 3600                 # (Optional) Duration in seconds. Default: null
+#   redirect:                          # (Optional) Used when type=redirect
+#     host: "#{host}"                  # (Optional) Redirect host. Default: "#{host}"
+#     path: "/#{path}"                 # (Optional) Redirect path. Default: "/#{path}"
+#     port: "#{port}"                  # (Optional) Redirect port. Default: "#{port}"
+#     protocol: "#{protocol}"          # (Optional) Redirect protocol. Default: "#{protocol}"
+#     query: "#{query}"                # (Optional) Redirect query string. Default: "#{query}"
+#     status_code: "HTTP_302"          # (Optional) Valid values: HTTP_301 | HTTP_302. Default: "HTTP_302"
+default_action: {}
+
+## ---------------------------------------------------------------------------
+## Security & logging
+## ---------------------------------------------------------------------------
+
+# web_acl_arn: "" # (Optional) ARN of the WAFv2 Web ACL associated with the ALB. Default: "" (no association)
+#                 # Sourced from the WAF dependency when it is enabled during scaffolding.
+#                 # Example: "arn:aws:wafv2:us-east-1:123456789012:regional/webacl/my-acl/1234abcd"
+web_acl_arn: ""
+
+# access_logs: # (Optional) ALB access and connection logs delivered to S3. Default: { enabled: false }
+#              # Access logs are written to s3://<bucket_name>/<logs_prefix>/access/ and connection logs
+#              # to s3://<bucket_name>/<logs_prefix>/connections/.
+#              # The bucket must be in the same region as the ALB and grant s3:PutObject to
+#              # elasticloadbalancing.amazonaws.com.
+#   enabled: false            # (Required) Enable access and connection logging. Default: false
+#   bucket_name: ""           # (Required when enabled) Destination S3 bucket name.
+#   logs_prefix: ""           # (Optional) Key prefix used to organize the logs. Default: ""
+#   logs_retention_years: 3   # (Optional) Retention period in years. Default: 3
+#   logs_archive_days: 30     # (Optional) Days before transitioning objects to Glacier. Default: 30
+access_logs:
+  enabled: false
+  bucket_name: ""
