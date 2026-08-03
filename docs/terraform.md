@@ -3,19 +3,19 @@
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.4 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.35 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.4 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.35 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.9 |
+| <a name="module_tags"></a> [tags](#module\_tags) | cloudopsworks/tags/local | 1.0.10 |
 
 ## Resources
 
@@ -68,13 +68,13 @@
 
 | Name | Description |
 |------|-------------|
-| <a name="output_default_acm_certificate_arn"></a> [default\_acm\_certificate\_arn](#output\_default\_acm\_certificate\_arn) | n/a |
-| <a name="output_load_balancer_arn"></a> [load\_balancer\_arn](#output\_load\_balancer\_arn) | n/a |
-| <a name="output_load_balancer_dns_name"></a> [load\_balancer\_dns\_name](#output\_load\_balancer\_dns\_name) | n/a |
-| <a name="output_load_balancer_http_listener_arn"></a> [load\_balancer\_http\_listener\_arn](#output\_load\_balancer\_http\_listener\_arn) | n/a |
-| <a name="output_load_balancer_https_listener_arn"></a> [load\_balancer\_https\_listener\_arn](#output\_load\_balancer\_https\_listener\_arn) | n/a |
-| <a name="output_load_balancer_id"></a> [load\_balancer\_id](#output\_load\_balancer\_id) | n/a |
-| <a name="output_load_balancer_name"></a> [load\_balancer\_name](#output\_load\_balancer\_name) | n/a |
-| <a name="output_load_balancer_security_group_id"></a> [load\_balancer\_security\_group\_id](#output\_load\_balancer\_security\_group\_id) | n/a |
-| <a name="output_load_balancer_security_group_name"></a> [load\_balancer\_security\_group\_name](#output\_load\_balancer\_security\_group\_name) | n/a |
-| <a name="output_load_balancer_zone_id"></a> [load\_balancer\_zone\_id](#output\_load\_balancer\_zone\_id) | n/a |
+| <a name="output_default_acm_certificate_arn"></a> [default\_acm\_certificate\_arn](#output\_default\_acm\_certificate\_arn) | ARN of the ACM certificate created by this module, empty when `default_ssl.enabled` is false. |
+| <a name="output_load_balancer_arn"></a> [load\_balancer\_arn](#output\_load\_balancer\_arn) | ARN of the Application Load Balancer, used for WAF associations and AWS Shield. |
+| <a name="output_load_balancer_dns_name"></a> [load\_balancer\_dns\_name](#output\_load\_balancer\_dns\_name) | Public DNS name of the Application Load Balancer, used as the target of Route53 ALIAS records. |
+| <a name="output_load_balancer_http_listener_arn"></a> [load\_balancer\_http\_listener\_arn](#output\_load\_balancer\_http\_listener\_arn) | ARN of the default HTTP listener on port 80, used to attach listener rules. |
+| <a name="output_load_balancer_https_listener_arn"></a> [load\_balancer\_https\_listener\_arn](#output\_load\_balancer\_https\_listener\_arn) | ARN of the default HTTPS listener on port 443, used to attach listener rules. |
+| <a name="output_load_balancer_id"></a> [load\_balancer\_id](#output\_load\_balancer\_id) | ID of the Application Load Balancer resource. |
+| <a name="output_load_balancer_name"></a> [load\_balancer\_name](#output\_load\_balancer\_name) | Name assigned to the Application Load Balancer. |
+| <a name="output_load_balancer_security_group_id"></a> [load\_balancer\_security\_group\_id](#output\_load\_balancer\_security\_group\_id) | ID of the security group attached to the Application Load Balancer, used to grant access to backend services. |
+| <a name="output_load_balancer_security_group_name"></a> [load\_balancer\_security\_group\_name](#output\_load\_balancer\_security\_group\_name) | Name of the security group attached to the Application Load Balancer. |
+| <a name="output_load_balancer_zone_id"></a> [load\_balancer\_zone\_id](#output\_load\_balancer\_zone\_id) | Route53 hosted zone ID of the Application Load Balancer, required by Route53 ALIAS records. |

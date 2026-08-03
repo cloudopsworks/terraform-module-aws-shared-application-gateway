@@ -1,50 +1,76 @@
 ##
-# (c) 2025 - Cloud Ops Works LLC - https://cloudops.works/
-#            On GitHub: https://github.com/cloudopsworks
-#            Distributed Under Apache v2.0 License
+# (c) 2021-2026
+#     Cloud Ops Works LLC - https://cloudops.works/
+#     Find us on:
+#       GitHub: https://github.com/cloudopsworks
+#       WebSite: https://cloudops.works
+#     Distributed Under Apache v2.0 License
 #
+# Terragrunt Boilerplate Configuration
 variables:
   # Generic Boilerplate Variables Setup
-  - name: organization_name
-    order: 0
-    description: "Organization Name"
-    type: string
-    default: "Organization"
-    confirm: true
-  - name: organization_unit
-    order: 1
-    description: "Organization Unit"
-    type: string
-    default: "Unit"
-    confirm: true
-  - name: environment_name
-    order: 2
-    description: "Environment Name"
-    type: string
-    default: "DEV"
-    confirm: true
-  - name: environment_type
-    order: 3
-    description: "Environment Type"
-    type: string
-    default: "Testing"
-    confirm: true
-  - name: hub_spoke
-    order: 4
-    description: "Hub and Spoke architecture"
-    type: bool
-    default: false
-    confirm: true
   - name: is_hub
-    order: 5
+    order: 0
     description: "Is this a hub configuration?"
     type: bool
     default: false
     confirm: true
   - name: tags
-    order: 6
+    order: 1
     description: "Tags"
     type: map
     default: {}
     confirm: true
   # End - Generic Boilerplate Variables Setup
+  - name: vpc_dependency_enabled
+    order: 2
+    description: "Is VPC dependency enabled?"
+    type: bool
+    default: true
+    confirm: true
+  - name: vpc_dependency_path
+    order: 3
+    description: "VPC dependency module path"
+    type: string
+    default: "../vpc"
+    confirm: true
+  - name: vpc_subnet_type
+    order: 4
+    description: "VPC Subnet Type"
+    type: enum
+    default: "public"
+    options:
+      - "public"
+      - "private"
+      - "intra"
+    confirm: true
+  - name: acm_dependency_enabled
+    order: 5
+    description: "Is ACM dependency enabled?"
+    type: bool
+    default: true
+    confirm: true
+  - name: acm_dependency_path
+    order: 6
+    description: "ACM dependency module path"
+    type: string
+    default: "../acm"
+    confirm: true
+  - name: webacl_dependency_enabled
+    order: 7
+    description: "Is WebACL dependency enabled?"
+    type: bool
+    default: true
+    confirm: true
+  - name: webacl_dependency_path
+    order: 8
+    description: "WebACL dependency module path"
+    type: string
+    default: "../waf"
+    confirm: true
+
+hooks:
+  after:
+    - command: "git"
+      args: ["add", "."]
+      dir: "{{ outputFolder }}"
