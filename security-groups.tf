@@ -59,15 +59,43 @@ resource "aws_vpc_security_group_ingress_rule" "sg_443" {
   tags              = local.all_tags
 }
 
-resource "aws_vpc_security_group_ingress_rule" "sg_extra_https" {
-  for_each = {
-    for listener in var.extra_listeners : "port-${listener.port}" => listener
+# Extra listeners only get an ingress rule when the listener declares `allow_cidrs`.
+# Each (port, cidr) pair becomes its own rule because aws_vpc_security_group_ingress_rule
+# accepts a single CIDR. IPv6 CIDRs are detected by the presence of ":".
+# "0.0.0.0/0" / "::/0" are not recommended and are warned about (see check below) but not blocked.
+locals {
+  extra_listener_ingress = {
+    for pair in flatten([
+      for listener in var.extra_listeners : [
+        for cidr in try(listener.allow_cidrs, []) : {
+          port = listener.port
+          cidr = cidr
+          ipv6 = strcontains(cidr, ":")
+        }
+      ]
+    ]) : "port-${pair.port}-${replace(replace(pair.cidr, "/", "_"), ":", "-")}" => pair
   }
+  extra_listener_open_cidrs = [
+    for pair in values(local.extra_listener_ingress) : "${pair.port} (${pair.cidr})"
+    if contains(["0.0.0.0/0", "::/0"], pair.cidr)
+  ]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "sg_extra_https" {
+  for_each          = local.extra_listener_ingress
   security_group_id = aws_security_group.this.id
   ip_protocol       = "tcp"
   from_port         = each.value.port
   to_port           = each.value.port
-  cidr_ipv4         = "0.0.0.0/0"
-  description       = "Allow all inbound traffic on port ${each.value.port}"
+  cidr_ipv4         = each.value.ipv6 ? null : each.value.cidr
+  cidr_ipv6         = each.value.ipv6 ? each.value.cidr : null
+  description       = "Allow inbound traffic on port ${each.value.port} from ${each.value.cidr}"
   tags              = local.all_tags
+}
+
+check "extra_listeners_open_to_world" {
+  assert {
+    condition     = length(local.extra_listener_open_cidrs) == 0
+    error_message = "extra_listeners allow_cidrs opens port(s) ${join(", ", local.extra_listener_open_cidrs)} to the world. Restrict allow_cidrs to trusted ranges instead of 0.0.0.0/0 or ::/0."
+  }
 }

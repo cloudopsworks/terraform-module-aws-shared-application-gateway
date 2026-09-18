@@ -95,9 +95,13 @@ mutual_authentication: {}
 ## ---------------------------------------------------------------------------
 
 # extra_listeners: # (Optional) Additional listeners on top of the default HTTP (80) and HTTPS (443). Default: []
-#                  # A security group ingress rule is created automatically for every extra listener port.
+#                  # A security group ingress rule is created for every extra listener port only when
+#                  # allow_cidrs is set; without it the listener exists but the port stays closed.
 #   - port: 8443                    # (Required) Listener port.
 #     ssl: true                     # (Optional) Terminate TLS on this listener. Default: false
+#     allow_cidrs:                  # (Optional) CIDRs allowed to reach this port. Default: [] (no ingress rule)
+#       - "10.0.0.0/8"              # IPv4 or IPv6 CIDR notation; one ingress rule is created per CIDR.
+#                                   # "0.0.0.0/0" or "::/0" emit a plan warning; prefer trusted ranges.
 #     mutual_authentication:        # (Optional) Per-listener mTLS. Default: {} (disabled)
 #       mode: "verify"              # (Required) Valid values: off | verify | passthrough
 #       trust_store_arn: ""         # (Optional) Trust store ARN. Required when mode=verify.

@@ -112,23 +112,33 @@ variable "extra_listeners" {
     extra_listeners:
       - port: 8443                        # (Required) Port number for the listener
         ssl: true                         # (Optional) Enable SSL/TLS. Default: false
+        allow_cidrs:                      # (Optional) CIDRs allowed to reach this port. Default: [] (no ingress rule)
+          - "10.0.0.0/8"                  #   IPv4 or IPv6 CIDR notation. "0.0.0.0/0" / "::/0" emit a plan warning.
         mutual_authentication:            # (Optional) mTLS configuration for this listener
           mode: "verify"                  # (Required) "off", "verify", or "passthrough"
           trust_store_arn: "arn:aws:..."  # (Optional) Trust store ARN
           client_cert_expiry: false       # (Optional) Ignore cert expiry
     ```
 
+    The security group ingress rule for the listener port is created only when `allow_cidrs` is provided;
+    one rule is created per CIDR. Without it the listener exists but the security group stays closed on that port.
+
     **Examples:**
     ```yaml
-    # HTTP listener on custom port
+    # HTTP listener on custom port, reachable from the corporate ranges only
     extra_listeners:
       - port: 8080
         ssl: false
+        allow_cidrs:
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
 
     # HTTPS listener with mTLS
     extra_listeners:
       - port: 8443
         ssl: true
+        allow_cidrs:
+          - "192.168.10.0/24"
         mutual_authentication:
           mode: "verify"
           trust_store_arn: "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/my-trust-store/abc123"
@@ -139,6 +149,15 @@ variable "extra_listeners" {
   type        = any
   default     = []
   nullable    = false
+
+  validation {
+    condition = alltrue(flatten([
+      for listener in var.extra_listeners : [
+        for cidr in try(listener.allow_cidrs, []) : can(cidrhost(cidr, 0))
+      ]
+    ]))
+    error_message = "Every entry in extra_listeners[*].allow_cidrs must be a valid IPv4 or IPv6 CIDR (e.g. \"10.0.0.0/8\" or \"2001:db8::/32\")."
+  }
 }
 
 variable "server_header_enabled" {
