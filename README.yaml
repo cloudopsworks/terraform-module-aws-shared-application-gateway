@@ -198,9 +198,13 @@ usage: |-
   ## ---------------------------------------------------------------------------
 
   # extra_listeners: # (Optional) Additional listeners on top of the default HTTP (80) and HTTPS (443). Default: []
-  #                  # A security group ingress rule is created automatically for every extra listener port.
+  #                  # A security group ingress rule is created for every extra listener port only when
+  #                  # allow_cidrs is set; without it the listener exists but the port stays closed.
   #   - port: 8443                    # (Required) Listener port.
   #     ssl: true                     # (Optional) Terminate TLS on this listener. Default: false
+  #     allow_cidrs:                  # (Optional) CIDRs allowed to reach this port. Default: [] (no ingress rule)
+  #       - "10.0.0.0/8"              # IPv4 or IPv6 CIDR notation; one ingress rule is created per CIDR.
+  #                                   # "0.0.0.0/0" or "::/0" emit a plan warning; prefer trusted ranges.
   #     mutual_authentication:        # (Optional) Per-listener mTLS. Default: {} (disabled)
   #       mode: "verify"              # (Required) Valid values: off | verify | passthrough
   #       trust_store_arn: ""         # (Optional) Trust store ARN. Required when mode=verify.
@@ -445,21 +449,28 @@ examples: |-
 
   ## Example 4: Extra listeners on custom ports
 
-  Each entry in `extra_listeners` gets its own listener and a matching security group ingress rule. The gRPC listener
-  below enforces mTLS while the WebSocket listener only terminates TLS.
+  Each entry in `extra_listeners` gets its own listener. The security group is opened on that port only when the
+  entry declares `allow_cidrs` — one ingress rule per CIDR (IPv4 or IPv6). Omitting `allow_cidrs` keeps the port
+  closed at the security group even though the listener exists. Setting `0.0.0.0/0` or `::/0` is allowed but
+  raises a plan-time warning. The gRPC listener below enforces mTLS while the WebSocket listener only terminates TLS.
 
   ```yaml
   # inputs.yaml
   is_internal: false
 
   extra_listeners:
-    - port: 8443              # gRPC with mTLS
+    - port: 8443              # gRPC with mTLS, reachable from the partner ranges only
       ssl: true
+      allow_cidrs:
+        - "203.0.113.0/24"
+        - "198.51.100.0/24"
       mutual_authentication:
         mode: "verify"
         trust_store_arn: "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/grpc-ca/abc123"
-    - port: 9443              # WebSocket, TLS only
+    - port: 9443              # WebSocket, TLS only, open to the internet (plan emits a warning)
       ssl: true
+      allow_cidrs:
+        - "0.0.0.0/0"
 
   default_action:
     type: "fixed-response"
@@ -490,6 +501,9 @@ examples: |-
   extra_listeners:
     - port: 8443
       ssl: true
+      allow_cidrs:
+        - "10.0.0.0/8"
+        - "2001:db8::/32"
       mutual_authentication:
         mode: "verify"
         trust_store_arn: "arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/internal-ca/main"
