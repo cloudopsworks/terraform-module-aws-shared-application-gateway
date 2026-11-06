@@ -90,10 +90,16 @@ usage: |-
   | `acm_dependency_path` | string | `../acm` | Relative path to the ACM deployment directory |
   | `webacl_dependency_enabled` | bool | `true` | Wire `web_acl_arn` from a WAF module output |
   | `webacl_dependency_path` | string | `../waf` | Relative path to the WAF deployment directory |
+  | `logs_bucket_dependency_enabled` | bool | `true` | Wire `access_logs.bucket_name` from an S3 bucket module output |
+  | `logs_bucket_dependency_path` | string | `../logs` | Relative path to the logs bucket deployment directory |
 
   Choose `vpc_subnet_type: public` for an internet-facing gateway (`is_internal: false`) and `private` or `intra` for an
   internal one (`is_internal: true`). When a dependency is enabled, the corresponding key in `inputs.yaml` is ignored
   because the generated `terragrunt.hcl` sources it from the upstream module output instead.
+
+  The logs bucket dependency only replaces `access_logs.bucket_name`. The other `access_logs` keys, including `enabled`,
+  still come from `inputs.yaml`, so logging stays off until you set `enabled: true`. Every enabled dependency must exist
+  at its path, including `../logs` when logging is off, so answer `false` for any upstream deployment you do not have.
 
   ## Generated `inputs.yaml`
 
@@ -253,6 +259,9 @@ usage: |-
   #              # elasticloadbalancing.amazonaws.com.
   #   enabled: false            # (Required) Enable access and connection logging. Default: false
   #   bucket_name: ""           # (Required when enabled) Destination S3 bucket name.
+  #                             # Sourced from the logs bucket dependency when it is enabled during
+  #                             # scaffolding, and the value set here is ignored. The other access_logs
+  #                             # keys still apply, so logging stays off until enabled is true.
   #   logs_prefix: ""           # (Optional) Key prefix used to organize the logs. Default: ""
   #   logs_retention_years: 3   # (Optional) Retention period in years. Default: 3
   #   logs_archive_days: 30     # (Optional) Days before transitioning objects to Glacier. Default: 30
@@ -333,8 +342,18 @@ usage: |-
     }
   }
 
+  dependency "logs_bucket" {
+    config_path                             = "../logs"
+    mock_outputs_allowed_terraform_commands = ["validate", "destroy"]
+    mock_outputs = {
+      bucket_id     = "logs-bucket-12345678901234"
+      bucket_arn    = "arn:aws:s3:::logs-bucket-12345678901234"
+      bucket_region = "us-east-1"
+    }
+  }
+
   terraform {
-    source = "github.com/cloudopsworks/terraform-module-aws-shared-application-gateway?ref=v1.3.13"
+    source = "github.com/cloudopsworks/terraform-module-aws-shared-application-gateway?ref=v1.4.1"
   }
 
   inputs = {
@@ -348,6 +367,10 @@ usage: |-
     acm_certificate_arn = dependency.acm.outputs.acm_certificate_arn
     web_acl_arn         = dependency.waf.outputs.web_acl_arn
 
+    access_logs = merge(local.local_vars.access_logs, {
+      bucket_name = dependency.logs_bucket.outputs.bucket_id
+    })
+
     is_internal               = try(local.local_vars.is_internal, false)
     ip_address_type           = try(local.local_vars.ip_address_type, "ipv4")
     delete_protection         = try(local.local_vars.delete_protection, true)
@@ -359,7 +382,6 @@ usage: |-
     mutual_authentication     = try(local.local_vars.mutual_authentication, {})
     extra_listeners           = try(local.local_vars.extra_listeners, [])
     default_action            = try(local.local_vars.default_action, {})
-    access_logs               = try(local.local_vars.access_logs, {})
 
     extra_tags = local.tags
   }
@@ -394,8 +416,9 @@ examples: |-
 
   ## Example 1: Internet-facing gateway with a module-managed certificate
 
-  Scaffolded with `vpc_dependency_enabled: true`, `vpc_subnet_type: public`, `acm_dependency_enabled: false`, and
-  `webacl_dependency_enabled: false`. The module issues and validates the certificate itself.
+  Scaffolded with `vpc_dependency_enabled: true`, `vpc_subnet_type: public`, `acm_dependency_enabled: false`,
+  `webacl_dependency_enabled: false`, and `logs_bucket_dependency_enabled: false`. The module issues and validates the
+  certificate itself.
 
   ```yaml
   # inputs.yaml
@@ -432,7 +455,8 @@ examples: |-
   ## Example 3: Dual-stack gateway with access logging
 
   Access and connection logs are delivered to an S3 bucket in the same region. The bucket policy must allow
-  `elasticloadbalancing.amazonaws.com` to `s3:PutObject`.
+  `elasticloadbalancing.amazonaws.com` to `s3:PutObject`. Scaffolded with `logs_bucket_dependency_enabled: false`, so
+  `bucket_name` is set here. With the dependency enabled, `bucket_name` comes from the logs bucket deployment instead.
 
   ```yaml
   # inputs.yaml
@@ -482,8 +506,8 @@ examples: |-
 
   ## Example 5: Hardened gateway with every feature enabled
 
-  Scaffolded with all three dependencies enabled, so `vpc_id`, `public_subnet_ids`, `acm_certificate_arn`, and
-  `web_acl_arn` are all sourced from upstream deployments.
+  Scaffolded with all four dependencies enabled, so `vpc_id`, `public_subnet_ids`, `acm_certificate_arn`, `web_acl_arn`,
+  and `access_logs.bucket_name` are all sourced from upstream deployments.
 
   ```yaml
   # inputs.yaml
@@ -517,7 +541,6 @@ examples: |-
 
   access_logs:
     enabled: true
-    bucket_name: "acme-security-logs"
     logs_prefix: "alb/production"
     logs_retention_years: 10
     logs_archive_days: 365
@@ -550,12 +573,17 @@ quickstart: |-
      - Public subnets attached to an internet gateway for an internet-facing gateway
      - Private (or intra) subnets for an internal gateway
 
-  3. **DNS configuration** (only when `default_ssl.auto_validation` is `true`)
+  3. **Logs bucket** (only when `logs_bucket_dependency_enabled` is `true`, the scaffold default)
+     - An S3 bucket deployment at `logs_bucket_dependency_path` that exposes a `bucket_id` output, such as
+       `terraform-module-aws-s3-bucket`
+     - A bucket in the same region as the ALB, with a policy allowing log delivery
+
+  4. **DNS configuration** (only when `default_ssl.auto_validation` is `true`)
      - A Route53 public hosted zone matching `default_ssl.validation_domain`
      - Domain delegation working, so ACM can see the validation records
 
-  4. **Tooling**
-     - Terraform >= 1.3 or OpenTofu
+  5. **Tooling**
+     - Terraform >= 1.5 or OpenTofu
      - Terragrunt, with the standard CloudOps Works hierarchy in place
        (`root.hcl`, `global-inputs.yaml`, `env-inputs.yaml`, `region-inputs.yaml`, `spoke-inputs.yaml`, and the matching
        `*-tags.json` files)
@@ -587,8 +615,9 @@ quickstart: |-
     validation_domain: "mycompany.com"
   ```
 
-  Leave `vpc_id`, `public_subnet_ids`, `acm_certificate_arn`, and `web_acl_arn` untouched when the matching scaffold
-  dependency is enabled — the generated `terragrunt.hcl` overrides them with the upstream module outputs.
+  Leave `vpc_id`, `public_subnet_ids`, `acm_certificate_arn`, `web_acl_arn`, and `access_logs.bucket_name` untouched when
+  the matching scaffold dependency is enabled — the generated `terragrunt.hcl` overrides them with the upstream module
+  outputs.
 
   ## Step 3: Plan and apply
 
