@@ -68,6 +68,18 @@ variables:
     type: string
     default: "../waf"
     confirm: true
+  - name: logs_bucket_dependency_enabled
+    order: 9
+    description: "Is Logs Bucket dependency enabled?"
+    type: bool
+    default: true
+    confirm: true
+  - name: logs_bucket_dependency_path
+    order: 10
+    description: "Logs Bucket dependency module path"
+    type: string
+    default: "../logs"
+    confirm: true
 
 hooks:
   after:
