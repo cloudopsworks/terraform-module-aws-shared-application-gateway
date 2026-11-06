@@ -150,6 +150,9 @@ web_acl_arn: ""
 #              # elasticloadbalancing.amazonaws.com.
 #   enabled: false            # (Required) Enable access and connection logging. Default: false
 #   bucket_name: ""           # (Required when enabled) Destination S3 bucket name.
+#                             # Sourced from the logs bucket dependency when it is enabled during
+#                             # scaffolding, and the value set here is ignored. The other access_logs
+#                             # keys still apply, so logging stays off until enabled is true.
 #   logs_prefix: ""           # (Optional) Key prefix used to organize the logs. Default: ""
 #   logs_retention_years: 3   # (Optional) Retention period in years. Default: 3
 #   logs_archive_days: 30     # (Optional) Days before transitioning objects to Glacier. Default: 30

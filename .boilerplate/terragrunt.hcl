@@ -69,6 +69,19 @@ dependency "waf" {
   }
 }
 {{ end }}
+{{- if .logs_bucket_dependency_enabled }}
+dependency "logs_bucket" {
+  config_path = "{{ .logs_bucket_dependency_path }}"
+  # Configure mock outputs for the `validate` command that are returned when there are no outputs available (e.g the
+  # module hasn't been applied yet.
+  mock_outputs_allowed_terraform_commands = ["validate", "destroy"]
+  mock_outputs = {
+    bucket_id = "logs-bucket-12345678901234"
+    bucket_arn = "arn:aws:s3:::logs-bucket-12345678901234"
+    bucket_region = "us-east-1"
+  }
+}
+{{ end }}
 terraform {
   source = "{{ .sourceUrl }}"
 }
@@ -98,6 +111,10 @@ inputs = {
   {{ .Name }} = dependency.waf.outputs.web_acl_arn
   {{- else if and $.acm_dependency_enabled (eq .Name "acm_certificate_arn") }}
   {{ .Name }} = dependency.acm.outputs.acm_certificate_arn
+  {{- else if and $.logs_bucket_dependency_enabled (eq .Name "access_logs") }}
+  access_logs = merge(local.local_vars.access_logs, {
+    bucket_name = dependency.logs_bucket.outputs.bucket_id
+  })
   {{- else }}
   {{ .Name }} = try(local.local_vars.{{ .Name }}, {{ .DefaultValue }})
   {{- end }}
