@@ -112,7 +112,7 @@ inputs = {
   {{- else if and $.acm_dependency_enabled (eq .Name "acm_certificate_arn") }}
   {{ .Name }} = dependency.acm.outputs.acm_certificate_arn
   {{- else if and $.logs_bucket_dependency_enabled (eq .Name "access_logs") }}
-  access_logs = merge(local.local_vars.logs, {
+  access_logs = merge(local.local_vars.access_logs, {
     bucket_name = dependency.logs_bucket.outputs.bucket_id
   })
   {{- else }}
