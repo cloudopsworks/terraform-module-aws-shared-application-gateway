@@ -9,6 +9,23 @@
 
 locals {
   lb_name = format("alb-%s", local.system_name_short)
+
+  https_redirect = {
+    port        = "443"
+    protocol    = "HTTPS"
+    status_code = "HTTP_301"
+  }
+
+  extra_listener_defaults = {
+    HTTP  = { type = "redirect", redirect = local.https_redirect }
+    HTTPS = var.default_action
+  }
+  extra_listener_actions = merge(
+    { for listener in var.extra_listeners : listener.port => local.extra_listener_defaults[try(listener.ssl, false) ? "HTTPS" : "HTTP"] },
+    # Older configurations could specify action fields directly on the listener.
+    { for listener in var.extra_listeners : listener.port => listener if can(listener.type) },
+    { for listener in var.extra_listeners : listener.port => listener.default_action if try(length(listener.default_action), 0) > 0 }
+  )
 }
 
 # ALB resource
@@ -19,6 +36,7 @@ resource "aws_lb" "this" {
   security_groups                  = [aws_security_group.this.id]
   subnets                          = var.is_internal ? var.private_subnet_ids : var.public_subnet_ids
   ip_address_type                  = var.ip_address_type
+  drop_invalid_header_fields       = var.drop_invalid_header_fields
   preserve_host_header             = true
   xff_header_processing_mode       = "append"
   enable_deletion_protection       = var.delete_protection
@@ -66,9 +84,9 @@ resource "aws_lb_listener" "this_http" {
   default_action {
     type = "redirect"
     redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+      port        = local.https_redirect.port
+      protocol    = local.https_redirect.protocol
+      status_code = local.https_redirect.status_code
     }
   }
   tags = merge(
@@ -169,45 +187,45 @@ resource "aws_lb_listener" "extra_https" {
     }
   }
   dynamic "default_action" {
-    for_each = length(try(each.value.default_action, {})) > 0 ? [tomap(each.value.default_action)] : [tomap(var.default_action)]
+    for_each = [local.extra_listener_actions[each.value.port]]
     content {
-      type = try(each.value.type, "fixed-response")
+      type = try(default_action.value.type, "fixed-response")
       dynamic "fixed_response" {
-        for_each = try(each.value.type, "fixed-response") == "fixed-response" ? [1] : []
+        for_each = try(default_action.value.type, "fixed-response") == "fixed-response" ? [1] : []
         content {
-          content_type = try(each.value.fixed.content_type, "application/json")
-          message_body = try(each.value.fixed.body, "{\"error\": \"Not Allowed\"}")
-          status_code  = try(each.value.fixed.status, "401")
+          content_type = try(default_action.value.fixed.content_type, "application/json")
+          message_body = try(default_action.value.fixed.body, "{\"error\": \"Not Allowed\"}")
+          status_code  = try(default_action.value.fixed.status, "401")
         }
       }
       dynamic "forward" {
-        for_each = try(each.value.type, "fixed-response") == "forward" ? [1] : []
+        for_each = try(default_action.value.type, "fixed-response") == "forward" ? [1] : []
         content {
           dynamic "target_group" {
-            for_each = try(each.value.forward.target_groups, [])
+            for_each = try(default_action.value.forward.target_groups, [])
             content {
               arn    = target_group.value.arn
               weight = try(target_group.value.weight, null)
             }
           }
           dynamic "stickiness" {
-            for_each = length(try(each.value.forward.stickiness, {})) > 0 ? [1] : []
+            for_each = length(try(default_action.value.forward.stickiness, {})) > 0 ? [1] : []
             content {
-              enabled  = try(each.value.forward.stickiness.enabled, true)
-              duration = try(each.value.forward.stickiness.duration, null)
+              enabled  = try(default_action.value.forward.stickiness.enabled, true)
+              duration = try(default_action.value.forward.stickiness.duration, null)
             }
           }
         }
       }
       dynamic "redirect" {
-        for_each = try(each.value.type, "fixed-response") == "redirect" ? [1] : []
+        for_each = try(default_action.value.type, "fixed-response") == "redirect" ? [1] : []
         content {
-          host        = try(each.value.redirect.host, "#{host}")
-          path        = try(each.value.redirect.path, "/#{path}")
-          port        = try(each.value.redirect.port, "#{port}")
-          protocol    = try(each.value.redirect.protocol, "#{protocol}")
-          query       = try(each.value.redirect.query, "#{query}")
-          status_code = try(each.value.redirect.status_code, "HTTP_302")
+          host        = try(default_action.value.redirect.host, "#{host}")
+          path        = try(default_action.value.redirect.path, "/#{path}")
+          port        = try(default_action.value.redirect.port, "#{port}")
+          protocol    = try(default_action.value.redirect.protocol, "#{protocol}")
+          query       = try(default_action.value.redirect.query, "#{query}")
+          status_code = try(default_action.value.redirect.status_code, "HTTP_302")
         }
       }
     }

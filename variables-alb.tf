@@ -80,14 +80,11 @@ variable "public_subnet_ids" {
 variable "ssl_policy" {
   description = <<-EOT
     (Optional) The security policy to apply to HTTPS listeners.
-    Common policies:
-    - `ELBSecurityPolicy-TLS-1-2-2017-01`: TLS 1.2+ (default, recommended)
-    - `ELBSecurityPolicy-TLS13-1-2-2021-06`: TLS 1.3 and 1.2
-    - `ELBSecurityPolicy-FS-1-2-2019-08`: Forward secrecy only
-    Default: "ELBSecurityPolicy-TLS-1-2-2017-01"
+    The default supports TLS 1.2 and TLS 1.3 and is listed under Security Hub control ELB.17.
+    Default: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
   EOT
   type        = string
-  default     = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  default     = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
   nullable    = false
 }
 
@@ -112,6 +109,7 @@ variable "extra_listeners" {
     extra_listeners:
       - port: 8443                        # (Required) Port number for the listener
         ssl: true                         # (Optional) Enable SSL/TLS. Default: false
+        default_action: {}                # (Optional) Override the default action for this port.
         allow_cidrs:                      # (Optional) CIDRs allowed to reach this port. Default: [] (no ingress rule)
           - "10.0.0.0/8"                  #   IPv4 or IPv6 CIDR notation. "0.0.0.0/0" / "::/0" emit a plan warning.
         mutual_authentication:            # (Optional) mTLS configuration for this listener
@@ -119,6 +117,9 @@ variable "extra_listeners" {
           trust_store_arn: "arn:aws:..."  # (Optional) Trust store ARN
           client_cert_expiry: false       # (Optional) Ignore cert expiry
     ```
+
+    Extra HTTP listeners redirect to HTTPS on port 443 by default (HTTP 301). Extra HTTPS listeners inherit
+    the module-level default_action. A nonempty per-listener default_action overrides either default.
 
     The security group ingress rule for the listener port is created only when `allow_cidrs` is provided;
     one rule is created per CIDR. Without it the listener exists but the security group stays closed on that port.
@@ -158,6 +159,14 @@ variable "extra_listeners" {
     ]))
     error_message = "Every entry in extra_listeners[*].allow_cidrs must be a valid IPv4 or IPv6 CIDR (e.g. \"10.0.0.0/8\" or \"2001:db8::/32\")."
   }
+}
+
+# drop_invalid_header_fields: true # (Optional) Drop invalid HTTP request headers. Default: true
+variable "drop_invalid_header_fields" {
+  description = "(Optional) Remove request headers with invalid names before forwarding to targets. Defaults to true for Security Hub ELB.4."
+  type        = bool
+  default     = true
+  nullable    = false
 }
 
 variable "server_header_enabled" {
@@ -207,8 +216,8 @@ variable "mutual_authentication" {
 
 variable "default_action" {
   description = <<-EOT
-    (Optional) Default action for extra listeners when no routing rules match.
-    The HTTP listener (port 80) always redirects to HTTPS. This configures extra listeners.
+    (Optional) Default action for HTTPS listeners when no routing rules match.
+    The HTTP listener on port 80 always redirects to HTTPS. Extra HTTP listeners default to the same redirect.
 
     Configuration structure (YAML format):
     ```yaml

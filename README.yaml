@@ -34,14 +34,31 @@ introduction: |-
 
   - An Application Load Balancer, internal or internet-facing, with IPv4 or dual-stack addressing
   - A dedicated security group with egress open and ingress on ports 80, 443, and every extra listener port
-  - A default HTTP listener on port 80 that permanently redirects to HTTPS
+  - An HTTP listener on port 80 that permanently redirects to HTTPS on port 443
   - A default HTTPS listener on port 443 with a configurable SSL policy and a configurable default action
-  - Optional extra listeners on arbitrary ports, each HTTP or HTTPS, each with its own mTLS configuration
+  - Optional HTTP or HTTPS listeners on custom ports, with per-listener mTLS configuration for HTTPS
   - Optional mutual TLS authentication (`off`, `verify`, or `passthrough`) against an ELB trust store
   - Optional ACM certificate with DNS or EMAIL validation, including automatic Route53 validation records
   - Optional WAFv2 Web ACL association
   - Optional access and connection logs delivered to an S3 bucket
   - Cross-zone load balancing, deletion protection, and consistent tagging of the load balancer network interfaces
+
+  **Security Hub defaults**
+
+  | Control | Default behavior |
+  |---------|------------------|
+  | ELBv2.1 (now ELB.1) | Port 80 and any extra HTTP listener without a custom action redirect to HTTPS on port 443. |
+  | ELB.4 | The ALB drops invalid request header fields. |
+  | ELB.17 | All HTTPS listeners use `ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09`, which supports TLS 1.2 and TLS 1.3. |
+
+  AWS publishes the [control ID mapping](https://docs.aws.amazon.com/securityhub/latest/userguide/asff-changes-consolidation.html)
+  and the [list of TLS policies accepted by ELB.17](https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-17).
+
+  Review custom HTTP listener actions and rules to maintain ELB.1 compliance. Rules that forward traffic or return a
+  fixed response can take precedence over the listener's redirect.
+
+  When upgrading an existing scaffold, update any earlier `ssl_policy` value in `inputs.yaml` and any older fallback
+  in `terragrunt.hcl` to the new default. Verify that clients support the new policy's cipher suites.
 
   **What this module does not create**
 
@@ -157,17 +174,17 @@ usage: |-
   #                              # Keep it false to avoid exposing load balancer version information.
   server_header_enabled: false
 
+  # drop_invalid_header_fields: true # (Optional) Drop invalid HTTP request header fields. Default: true
+  drop_invalid_header_fields: true
+
   ## ---------------------------------------------------------------------------
   ## TLS termination
   ## ---------------------------------------------------------------------------
 
-  # ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01" # (Optional) Security policy applied to the HTTPS listeners.
-  #                                                 # Default: "ELBSecurityPolicy-TLS-1-2-2017-01"
-  #                                                 # Common values:
-  #                                                 #   ELBSecurityPolicy-TLS-1-2-2017-01   -> TLS 1.2+ (recommended baseline)
-  #                                                 #   ELBSecurityPolicy-TLS13-1-2-2021-06 -> TLS 1.3 and 1.2
-  #                                                 #   ELBSecurityPolicy-FS-1-2-2019-08    -> forward secrecy only
-  ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
+  # ssl_policy: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09" # (Optional) Security policy applied to all HTTPS listeners.
+  #                                                       # Default: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
+  #                                                       # Supports TLS 1.2 and TLS 1.3 and meets Security Hub ELB.17.
+  ssl_policy: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
 
   # acm_certificate_arn: "" # (Optional) ARN of an existing ACM certificate for the HTTPS listeners. Default: ""
   #                         # Takes precedence over default_ssl. The certificate must live in the same region
@@ -216,12 +233,13 @@ usage: |-
   #       trust_store_arn: ""         # (Optional) Trust store ARN. Required when mode=verify.
   #       client_cert_expiry: false   # (Optional) Ignore client certificate expiry. Default: false
   #     default_action: {}            # (Optional) Per-listener default action, same shape as default_action
-  #                                   # below. Falls back to the module-level default_action when omitted.
+  #                                   # below. With an empty or omitted action, HTTPS uses the module-level
+  #                                   # default_action and HTTP redirects to HTTPS on port 443 (HTTP_301).
   extra_listeners: []
 
-  # default_action: # (Optional) Default action used by the HTTPS and extra listeners when no rule matches.
+  # default_action: # (Optional) Default action for HTTPS listeners when no rule matches.
   #                 # Default: {} — behaves as a fixed-response with HTTP 401.
-  #                 # The HTTP listener on port 80 always redirects to HTTPS and ignores this setting.
+  #                 # The HTTP listener on port 80 always redirects to HTTPS on port 443 (HTTP_301).
   #   type: "fixed-response"             # (Required) Action type. Valid values: fixed-response | forward | redirect
   #   fixed:                             # (Optional) Used when type=fixed-response
   #     content_type: "application/json" # (Optional) Response content type. Default: "application/json"
@@ -357,32 +375,28 @@ usage: |-
   }
 
   inputs = {
-    is_hub    = false
-    org       = local.env_vars.org
-    spoke_def = local.spoke_vars.spoke
-
-    vpc_id            = dependency.vpc.outputs.vpc_id
-    public_subnet_ids = dependency.vpc.outputs.public_subnets
-
-    acm_certificate_arn = dependency.acm.outputs.acm_certificate_arn
-    web_acl_arn         = dependency.waf.outputs.web_acl_arn
-
+    is_hub                     = false
+    org                        = local.env_vars.org
+    spoke_def                  = local.spoke_vars.spoke
+    vpc_id                     = dependency.vpc.outputs.vpc_id
+    is_internal                = try(local.local_vars.is_internal, false)
+    ip_address_type            = try(local.local_vars.ip_address_type, "ipv4")
+    delete_protection          = try(local.local_vars.delete_protection, true)
+    private_subnet_ids         = try(local.local_vars.private_subnet_ids, [])
+    public_subnet_ids          = dependency.vpc.outputs.public_subnets
+    ssl_policy                 = try(local.local_vars.ssl_policy, "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09")
+    cross_zone_load_balancing  = try(local.local_vars.cross_zone_load_balancing, true)
+    extra_listeners            = try(local.local_vars.extra_listeners, [])
+    drop_invalid_header_fields = try(local.local_vars.drop_invalid_header_fields, true)
+    server_header_enabled      = try(local.local_vars.server_header_enabled, false)
+    mutual_authentication      = try(local.local_vars.mutual_authentication, {})
+    default_action             = try(local.local_vars.default_action, {})
+    web_acl_arn                = dependency.waf.outputs.web_acl_arn
+    default_ssl                = try(local.local_vars.default_ssl, { "auto_validation" : false, "cn" : "", "dns_ttl" : 300, "enabled" : false, "san" : [], "validation_domain" : "example.com", "validation_email" : "", "validation_method" : "DNS" })
+    acm_certificate_arn        = dependency.acm.outputs.acm_certificate_arn
     access_logs = merge(local.local_vars.access_logs, {
       bucket_name = dependency.logs_bucket.outputs.bucket_id
     })
-
-    is_internal               = try(local.local_vars.is_internal, false)
-    ip_address_type           = try(local.local_vars.ip_address_type, "ipv4")
-    delete_protection         = try(local.local_vars.delete_protection, true)
-    cross_zone_load_balancing = try(local.local_vars.cross_zone_load_balancing, true)
-    server_header_enabled     = try(local.local_vars.server_header_enabled, false)
-    private_subnet_ids        = try(local.local_vars.private_subnet_ids, [])
-    ssl_policy                = try(local.local_vars.ssl_policy, "ELBSecurityPolicy-TLS-1-2-2017-01")
-    default_ssl               = try(local.local_vars.default_ssl, {})
-    mutual_authentication     = try(local.local_vars.mutual_authentication, {})
-    extra_listeners           = try(local.local_vars.extra_listeners, [])
-    default_action            = try(local.local_vars.default_action, {})
-
     extra_tags = local.tags
   }
   ```
@@ -444,7 +458,7 @@ examples: |-
   ```yaml
   # inputs.yaml
   is_internal: true
-  ssl_policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  ssl_policy: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
 
   mutual_authentication:
     mode: "verify"
@@ -516,7 +530,7 @@ examples: |-
   delete_protection: true
   cross_zone_load_balancing: true
   server_header_enabled: false
-  ssl_policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  ssl_policy: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
 
   mutual_authentication:
     mode: "verify"
@@ -632,7 +646,7 @@ quickstart: |-
   1. Create the Application Load Balancer and its security group
   2. Open ingress on ports 80, 443, and every extra listener port
   3. Issue the ACM certificate and, with `auto_validation`, create the Route53 validation records
-  4. Create the HTTP listener that redirects to HTTPS
+  4. Create the port 80 listener and redirect to HTTPS on port 443
   5. Create the HTTPS listener bound to the certificate
   6. Associate the WAF Web ACL when `web_acl_arn` is set
   7. Tag the load balancer network interfaces
