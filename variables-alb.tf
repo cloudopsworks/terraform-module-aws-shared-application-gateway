@@ -109,7 +109,7 @@ variable "extra_listeners" {
     extra_listeners:
       - port: 8443                        # (Required) Port number for the listener
         ssl: true                         # (Optional) Enable SSL/TLS. Default: false
-        default_action: {}                # (Optional) Override the default action for this port.
+        default_action: {}                # (Optional) Action when no rule matches. Default: {} (fixed JSON 401 response).
         allow_cidrs:                      # (Optional) CIDRs allowed to reach this port. Default: [] (no ingress rule)
           - "10.0.0.0/8"                  #   IPv4 or IPv6 CIDR notation. "0.0.0.0/0" / "::/0" emit a plan warning.
         mutual_authentication:            # (Optional) mTLS configuration for this listener
@@ -118,8 +118,9 @@ variable "extra_listeners" {
           client_cert_expiry: false       # (Optional) Ignore cert expiry
     ```
 
-    Extra HTTP listeners redirect to HTTPS on port 443 by default (HTTP 301). Extra HTTPS listeners inherit
-    the module-level default_action. A nonempty per-listener default_action overrides either default.
+    For each extra listener, the fallback when no rule matches is a fixed JSON response with HTTP 401.
+    A nonempty per-listener default_action takes precedence over legacy inline action fields.
+    For ELB.1 compliance, set an explicit HTTPS redirect on each extra HTTP listener.
 
     The security group ingress rule for the listener port is created only when `allow_cidrs` is provided;
     one rule is created per CIDR. Without it the listener exists but the security group stays closed on that port.
@@ -216,8 +217,8 @@ variable "mutual_authentication" {
 
 variable "default_action" {
   description = <<-EOT
-    (Optional) Default action for HTTPS listeners when no routing rules match.
-    The HTTP listener on port 80 always redirects to HTTPS. Extra HTTP listeners default to the same redirect.
+    (Optional) Default action for the primary HTTPS listener on port 443 when no routing rules match.
+    The HTTP listener on port 80 always redirects to HTTPS. Configure actions for other ports in extra_listeners.
 
     Configuration structure (YAML format):
     ```yaml

@@ -107,11 +107,11 @@ mutual_authentication: {}
 #       trust_store_arn: ""         # (Optional) Trust store ARN. Required when mode=verify.
 #       client_cert_expiry: false   # (Optional) Ignore client certificate expiry. Default: false
 #     default_action: {}            # (Optional) Per-listener default action, same shape as default_action
-#                                   # below. With an empty or omitted action, HTTPS uses the module-level
-#                                   # default_action and HTTP redirects to HTTPS on port 443 (HTTP_301).
+#                                   # below. Default: {} (fixed JSON response with HTTP 401).
+#                                   # Set an explicit HTTPS redirect on extra HTTP listeners for ELB.1.
 extra_listeners: []
 
-# default_action: # (Optional) Default action for HTTPS listeners when no rule matches.
+# default_action: # (Optional) Default action for the primary HTTPS listener on port 443 when no rule matches.
 #                 # Default: {} — behaves as a fixed-response with HTTP 401.
 #                 # The HTTP listener on port 80 always redirects to HTTPS on port 443 (HTTP_301).
 #   type: "fixed-response"             # (Required) Action type. Valid values: fixed-response | forward | redirect

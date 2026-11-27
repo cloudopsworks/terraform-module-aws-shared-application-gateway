@@ -10,20 +10,9 @@
 locals {
   lb_name = format("alb-%s", local.system_name_short)
 
-  https_redirect = {
-    port        = "443"
-    protocol    = "HTTPS"
-    status_code = "HTTP_301"
-  }
-
-  extra_listener_defaults = {
-    HTTP  = { type = "redirect", redirect = local.https_redirect }
-    HTTPS = var.default_action
-  }
+  # A nonempty nested action overrides action fields on the listener itself (v1.4.1 syntax).
   extra_listener_actions = merge(
-    { for listener in var.extra_listeners : listener.port => local.extra_listener_defaults[try(listener.ssl, false) ? "HTTPS" : "HTTP"] },
-    # Older configurations could specify action fields directly on the listener.
-    { for listener in var.extra_listeners : listener.port => listener if can(listener.type) },
+    { for listener in var.extra_listeners : listener.port => listener },
     { for listener in var.extra_listeners : listener.port => listener.default_action if try(length(listener.default_action), 0) > 0 }
   )
 }
@@ -84,9 +73,9 @@ resource "aws_lb_listener" "this_http" {
   default_action {
     type = "redirect"
     redirect {
-      port        = local.https_redirect.port
-      protocol    = local.https_redirect.protocol
-      status_code = local.https_redirect.status_code
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
     }
   }
   tags = merge(

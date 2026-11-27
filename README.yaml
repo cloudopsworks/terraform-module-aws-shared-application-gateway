@@ -47,15 +47,19 @@ introduction: |-
 
   | Control | Default behavior |
   |---------|------------------|
-  | ELBv2.1 (now ELB.1) | Port 80 and any extra HTTP listener without a custom action redirect to HTTPS on port 443. |
+  | ELBv2.1 (now ELB.1) | Port 80 redirects to HTTPS on port 443. Configure an explicit HTTPS redirect on each extra HTTP listener. |
   | ELB.4 | The ALB drops invalid request header fields. |
   | ELB.17 | All HTTPS listeners use `ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09`, which supports TLS 1.2 and TLS 1.3. |
 
   AWS publishes the [control ID mapping](https://docs.aws.amazon.com/securityhub/latest/userguide/asff-changes-consolidation.html)
   and the [list of TLS policies accepted by ELB.17](https://docs.aws.amazon.com/securityhub/latest/userguide/elb-controls.html#elb-17).
 
-  Review custom HTTP listener actions and rules to maintain ELB.1 compliance. Rules that forward traffic or return a
-  fixed response can take precedence over the listener's redirect.
+  For ELB.1 compliance, configure any custom HTTP rules to redirect to HTTPS as well. Rules that forward traffic or
+  return a fixed response can take precedence over the listener's redirect.
+
+  Extra listeners without an explicit action return a fixed JSON response with HTTP 401 when no rule matches, as
+  in v1.4.1. The module-level `default_action` configures the primary HTTPS listener on port 443. An extra listener
+  accepts its own `default_action` or existing inline action fields.
 
   When upgrading an existing scaffold, update any earlier `ssl_policy` value in `inputs.yaml` and any older fallback
   in `terragrunt.hcl` to the new default. Verify that clients support the new policy's cipher suites.
@@ -233,11 +237,11 @@ usage: |-
   #       trust_store_arn: ""         # (Optional) Trust store ARN. Required when mode=verify.
   #       client_cert_expiry: false   # (Optional) Ignore client certificate expiry. Default: false
   #     default_action: {}            # (Optional) Per-listener default action, same shape as default_action
-  #                                   # below. With an empty or omitted action, HTTPS uses the module-level
-  #                                   # default_action and HTTP redirects to HTTPS on port 443 (HTTP_301).
+  #                                   # below. Default: {} (fixed JSON response with HTTP 401).
+  #                                   # Set an explicit HTTPS redirect on extra HTTP listeners for ELB.1.
   extra_listeners: []
 
-  # default_action: # (Optional) Default action for HTTPS listeners when no rule matches.
+  # default_action: # (Optional) Default action for the primary HTTPS listener on port 443 when no rule matches.
   #                 # Default: {} — behaves as a fixed-response with HTTP 401.
   #                 # The HTTP listener on port 80 always redirects to HTTPS on port 443 (HTTP_301).
   #   type: "fixed-response"             # (Required) Action type. Valid values: fixed-response | forward | redirect
@@ -490,7 +494,8 @@ examples: |-
   Each entry in `extra_listeners` gets its own listener. The security group is opened on that port only when the
   entry declares `allow_cidrs` — one ingress rule per CIDR (IPv4 or IPv6). Omitting `allow_cidrs` keeps the port
   closed at the security group even though the listener exists. Setting `0.0.0.0/0` or `::/0` is allowed but
-  raises a plan-time warning. The gRPC listener below enforces mTLS while the WebSocket listener only terminates TLS.
+  raises a plan-time warning. The gRPC listener below enforces mTLS, the WebSocket listener terminates TLS, and
+  the extra HTTP listener redirects to the primary HTTPS listener.
 
   ```yaml
   # inputs.yaml
@@ -509,19 +514,29 @@ examples: |-
       ssl: true
       allow_cidrs:
         - "0.0.0.0/0"
-
-  default_action:
-    type: "fixed-response"
-    fixed:
-      content_type: "text/plain"
-      body: "Service Unavailable"
-      status: "503"
+      default_action:
+        type: "fixed-response"
+        fixed:
+          content_type: "text/plain"
+          body: "Service Unavailable"
+          status: "503"
+    - port: 8080
+      ssl: false
+      allow_cidrs:
+        - "203.0.113.0/24"
+      default_action:
+        type: "redirect"
+        redirect:
+          protocol: "HTTPS"
+          port: "443"
+          status_code: "HTTP_301"
   ```
 
   ## Example 5: Hardened gateway with every feature enabled
 
   Scaffolded with all four dependencies enabled, so `vpc_id`, `public_subnet_ids`, `acm_certificate_arn`, `web_acl_arn`,
-  and `access_logs.bucket_name` are all sourced from upstream deployments.
+  and `access_logs.bucket_name` are all sourced from upstream deployments. The custom HTTP 401 response applies to
+  the primary HTTPS listener. The extra HTTPS listener uses the default JSON response when no rule matches.
 
   ```yaml
   # inputs.yaml
