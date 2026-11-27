@@ -48,17 +48,17 @@ cross_zone_load_balancing: true
 #                              # Keep it false to avoid exposing load balancer version information.
 server_header_enabled: false
 
+# drop_invalid_header_fields: true # (Optional) Drop invalid HTTP request header fields. Default: true
+drop_invalid_header_fields: true
+
 ## ---------------------------------------------------------------------------
 ## TLS termination
 ## ---------------------------------------------------------------------------
 
-# ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01" # (Optional) Security policy applied to the HTTPS listeners.
-#                                                 # Default: "ELBSecurityPolicy-TLS-1-2-2017-01"
-#                                                 # Common values:
-#                                                 #   ELBSecurityPolicy-TLS-1-2-2017-01   -> TLS 1.2+ (recommended baseline)
-#                                                 #   ELBSecurityPolicy-TLS13-1-2-2021-06 -> TLS 1.3 and 1.2
-#                                                 #   ELBSecurityPolicy-FS-1-2-2019-08    -> forward secrecy only
-ssl_policy: "ELBSecurityPolicy-TLS-1-2-2017-01"
+# ssl_policy: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09" # (Optional) Security policy applied to all HTTPS listeners.
+#                                                       # Default: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
+#                                                       # Supports TLS 1.2 and TLS 1.3 and meets Security Hub ELB.17.
+ssl_policy: "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
 
 # acm_certificate_arn: "" # (Optional) ARN of an existing ACM certificate for the HTTPS listeners. Default: ""
 #                         # Takes precedence over default_ssl. The certificate must live in the same region
@@ -107,12 +107,13 @@ mutual_authentication: {}
 #       trust_store_arn: ""         # (Optional) Trust store ARN. Required when mode=verify.
 #       client_cert_expiry: false   # (Optional) Ignore client certificate expiry. Default: false
 #     default_action: {}            # (Optional) Per-listener default action, same shape as default_action
-#                                   # below. Falls back to the module-level default_action when omitted.
+#                                   # below. With an empty or omitted action, HTTPS uses the module-level
+#                                   # default_action and HTTP redirects to HTTPS on port 443 (HTTP_301).
 extra_listeners: []
 
-# default_action: # (Optional) Default action used by the HTTPS and extra listeners when no rule matches.
+# default_action: # (Optional) Default action for HTTPS listeners when no rule matches.
 #                 # Default: {} — behaves as a fixed-response with HTTP 401.
-#                 # The HTTP listener on port 80 always redirects to HTTPS and ignores this setting.
+#                 # The HTTP listener on port 80 always redirects to HTTPS on port 443 (HTTP_301).
 #   type: "fixed-response"             # (Required) Action type. Valid values: fixed-response | forward | redirect
 #   fixed:                             # (Optional) Used when type=fixed-response
 #     content_type: "application/json" # (Optional) Response content type. Default: "application/json"
